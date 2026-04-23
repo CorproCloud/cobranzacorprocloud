@@ -26,7 +26,9 @@ export interface ClientCartera {
 
 const DATE_RE = /^\d{2}\/\d{2}\/\d{4}$/;
 const NUM_RE = /^-?[\d,]+\.\d{2}$/;
-const INT_RE = /^\d{1,5}$/;
+const INT_RE = /^\d{1,6}$/;
+// Combined "DOC FECHA" cell, e.g. "11601 15/04/2015"
+const DOC_DATE_RE = /^(\d{1,7})\s+(\d{2}\/\d{2}\/\d{4})$/;
 
 function toISO(d: string): string {
   const [dd, mm, yyyy] = d.split("/");
@@ -89,27 +91,29 @@ export async function parseCarteraPDF(file: File): Promise<ClientCartera[]> {
     const cells = lines[i];
     const joined = cells.join(" ");
 
-    // Skip headers / page chrome
+    // Skip page chrome / report headers
     if (
-      /^(Cliente|Doc|Fecha|Concepto|Tipo|Página|Hora|Total|Encargado|REMEDIO|Cuentas por Cobrar)/i.test(
-        joined
+      /^(Página|Hora|Fecha:|Encargado|REMEDIO|Cuentas por Cobrar|Moneda Nacional|V\b|Días de|Cliente\s+Doc)/i.test(
+        joined,
       ) ||
-      /Elaborado con/i.test(joined)
+      /Elaborado con/i.test(joined) ||
+      /^Total/i.test(cells[0] ?? "") ||
+      cells.every((c) => /^[A-Z]$/.test(c)) // "V E N C I D O" header
     ) {
       continue;
     }
 
-    // Client header: starts with integer ID followed by uppercase NAME
-    // e.g. ["9", "RIVERA MAYAN"] or ["13", "TAAJ MA ALOB"]
+    // Client header: ["9","RIVERA MAYAN", ("Encargado")? ...]
     if (
       cells.length >= 2 &&
       /^\d{1,6}$/.test(cells[0]) &&
-      /^[A-ZÁÉÍÓÚÑ&.,\- ]{2,}$/.test(cells[1]) &&
-      // Must NOT look like an invoice row (no date in cells[2])
-      !DATE_RE.test(cells[2] ?? "")
+      /^[A-ZÁÉÍÓÚÑ&.,/\- 0-9]{2,}$/.test(cells[1]) &&
+      !DATE_RE.test(cells[1]) &&
+      !DOC_DATE_RE.test(cells[1])
     ) {
       const id = cells[0];
-      const nombre = cells.slice(1).filter((c) => /^[A-ZÁÉÍÓÚÑ&.,\- ]+$/.test(c)).join(" ").trim();
+      // Take cells[1] as the canonical name (everything after — like "Encargado" — is noise)
+      const nombre = cells[1].trim();
       current = clients.get(id) ?? {
         id,
         nombre,
@@ -131,18 +135,39 @@ export async function parseCarteraPDF(file: File): Promise<ClientCartera[]> {
       continue;
     }
 
-    // Invoice row: doc, date, "Factura"|"Anticipo"|..., (tipo), días, ..., monto
-    // Find a date cell + a "Factura" cell
     if (!current) continue;
-    const dateIdx = cells.findIndex((c) => DATE_RE.test(c));
-    const conceptoIdx = cells.findIndex((c) => /^(Factura|Nota|Anticipo|Cargo|Devoluci)/i.test(c));
-    if (dateIdx === -1 || conceptoIdx === -1) continue;
 
-    // Doc # is usually right before the date
-    const docCandidate = cells[dateIdx - 1];
-    if (!docCandidate || !INT_RE.test(docCandidate)) continue;
+    // Invoice row. Doc + Fecha may be in ONE cell ("11601 15/04/2015") or two.
+    // Some rows have a leading "F" cell (foreign-currency marker) that we skip.
+    let docNo = "";
+    let fecha = "";
+    let conceptoIdx = -1;
 
-    // Días vencido: integer between concepto and the money column
+    for (let j = 0; j < cells.length; j++) {
+      const m = DOC_DATE_RE.exec(cells[j]);
+      if (m) {
+        docNo = m[1];
+        fecha = m[2];
+        break;
+      }
+      // Two-cell variant: INT then DATE
+      if (INT_RE.test(cells[j]) && DATE_RE.test(cells[j + 1] ?? "")) {
+        docNo = cells[j];
+        fecha = cells[j + 1];
+        break;
+      }
+    }
+    if (!docNo || !fecha) continue;
+
+    conceptoIdx = cells.findIndex((c) =>
+      /^(Factura|Nota|Anticipo|Cargo|Devoluci|Cheque)/i.test(c),
+    );
+    if (conceptoIdx === -1) continue;
+
+    // Only invoices count for cobranza
+    if (!/^Factura/i.test(cells[conceptoIdx])) continue;
+
+    // Días vencido: integer after concepto, before money
     let dias = 0;
     for (let j = conceptoIdx + 1; j < cells.length; j++) {
       if (/^\d{1,5}$/.test(cells[j])) {
@@ -159,14 +184,10 @@ export async function parseCarteraPDF(file: File): Promise<ClientCartera[]> {
         break;
       }
     }
-
-    // Only invoices (Factura), skip Anticipo/Devolución for cobranza
-    if (!/^Factura/i.test(cells[conceptoIdx])) continue;
     if (monto <= 0) continue;
 
-    const fecha = cells[dateIdx];
     current.invoices.push({
-      doc: docCandidate,
+      doc: docNo,
       fecha,
       fechaISO: toISO(fecha),
       concepto: cells[conceptoIdx],
