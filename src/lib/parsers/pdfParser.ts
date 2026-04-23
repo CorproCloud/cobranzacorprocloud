@@ -2,7 +2,6 @@
 // Uses pdfjs-dist to extract text, then pattern-matches client headers + invoice rows.
 
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-expect-error - vite worker import
 import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = PdfWorker;
