@@ -29,14 +29,18 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Cobranza Corpro" },
+      { name: "description", content: "Centro de cobranza multi-empresarial." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Cobranza Corpro" },
+      { property: "og:description", content: "Centro de cobranza multi-empresarial." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Cobranza Corpro" },
+      { name: "twitter:description", content: "Centro de cobranza multi-empresarial." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec028bbe-a76b-48ef-8a6a-4f8f7185b9fd/id-preview-5d33962e--992f779c-f696-45e0-994b-5eed4b63e03e.lovable.app-1776987364540.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec028bbe-a76b-48ef-8a6a-4f8f7185b9fd/id-preview-5d33962e--992f779c-f696-45e0-994b-5eed4b63e03e.lovable.app-1776987364540.png" },
     ],
     links: [
       {
