@@ -77,6 +77,15 @@ export function HelpDialog() {
             </p>
           </section>
         </div>
+        <div className="mt-2 border-t border-border pt-3 text-center text-[11px] text-muted-foreground">
+          Desarrollado por Miguel M. Navarro ·{" "}
+          <a
+            href="mailto:mnavarro@corpro.cloud"
+            className="text-primary hover:underline"
+          >
+            mnavarro@corpro.cloud
+          </a>
+        </div>
       </DialogContent>
     </Dialog>
   );

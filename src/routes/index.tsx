@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   FileText,
+  Play,
   Search,
   Users,
   Wallet,
@@ -59,42 +60,55 @@ function Dashboard() {
   const [emailTpl, setEmailTpl] = useState(DEFAULT_EMAIL_TEMPLATE);
   const [waTpl, setWaTpl] = useState(DEFAULT_WHATSAPP_TEMPLATE);
 
-  const handlePdf = async (f: File | null) => {
+  const handlePdf = (f: File | null) => {
     setPdfFile(f);
-    if (!f) {
-      setClients([]);
-      return;
-    }
-    setLoadingPdf(true);
-    try {
-      const parsed = await parseCarteraPDF(f);
-      setClients(parsed);
-      toast.success(`PDF procesado: ${parsed.length} clientes con cartera`);
-    } catch (e) {
-      console.error(e);
-      toast.error("Error al procesar el PDF");
-    } finally {
-      setLoadingPdf(false);
-    }
+    if (!f) setClients([]);
   };
 
-  const handleXlsx = async (f: File | null) => {
+  const handleXlsx = (f: File | null) => {
     setXlsxFile(f);
-    if (!f) {
-      setContacts([]);
+    if (!f) setContacts([]);
+  };
+
+  const processing = loadingPdf || loadingXlsx;
+
+  const handleProcess = async () => {
+    if (!pdfFile && !xlsxFile) {
+      toast.error("Carga al menos un archivo para procesar");
       return;
     }
-    setLoadingXlsx(true);
-    try {
-      const parsed = await parseContactsExcel(f);
-      setContacts(parsed);
-      toast.success(`Directorio cargado: ${parsed.length} contactos`);
-    } catch (e) {
-      console.error(e);
-      toast.error("Error al procesar el Excel");
-    } finally {
-      setLoadingXlsx(false);
+    const tasks: Promise<unknown>[] = [];
+    if (pdfFile) {
+      setLoadingPdf(true);
+      tasks.push(
+        parseCarteraPDF(pdfFile)
+          .then((parsed) => {
+            setClients(parsed);
+            toast.success(`PDF procesado: ${parsed.length} clientes con cartera`);
+          })
+          .catch((e) => {
+            console.error(e);
+            toast.error("Error al procesar el PDF");
+          })
+          .finally(() => setLoadingPdf(false)),
+      );
     }
+    if (xlsxFile) {
+      setLoadingXlsx(true);
+      tasks.push(
+        parseContactsExcel(xlsxFile)
+          .then((parsed) => {
+            setContacts(parsed);
+            toast.success(`Directorio cargado: ${parsed.length} contactos`);
+          })
+          .catch((e) => {
+            console.error(e);
+            toast.error("Error al procesar el Excel");
+          })
+          .finally(() => setLoadingXlsx(false)),
+      );
+    }
+    await Promise.all(tasks);
   };
 
   const contactsByCode = useMemo(() => {
@@ -167,7 +181,7 @@ function Dashboard() {
                 Centro de Cobranza
               </h1>
               <p className="text-xs text-muted-foreground">
-                Cobranza sistematizada · Recordatorios automáticos
+                Cobranza sistematizada
               </p>
             </div>
           </div>
@@ -210,6 +224,28 @@ function Dashboard() {
             loading={loadingXlsx}
           />
         </section>
+
+        {/* Process button */}
+        <div className="mt-6 flex justify-center">
+          <Button
+            size="lg"
+            onClick={handleProcess}
+            disabled={processing || (!pdfFile && !xlsxFile)}
+            className="gap-2 px-8 shadow-[var(--shadow-elegant)]"
+          >
+            {processing ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                Procesando…
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Procesar archivos
+              </>
+            )}
+          </Button>
+        </div>
 
         {ready && (
           <>
@@ -370,7 +406,7 @@ function Dashboard() {
 
       <footer className="border-t border-border bg-card/50 py-4">
         <div className="mx-auto max-w-7xl px-6 text-center text-xs text-muted-foreground">
-          Procesamiento 100% local · Tus datos nunca abandonan tu navegador
+          Tus datos nunca abandonan tu navegador
         </div>
       </footer>
     </div>
