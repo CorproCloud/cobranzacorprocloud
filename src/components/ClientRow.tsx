@@ -1,5 +1,17 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Mail, MessageCircle, AlertCircle } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Mail,
+  MessageCircle,
+  AlertCircle,
+  FileText,
+  Phone,
+  AtSign,
+  Users,
+  CalendarClock,
+  BadgeCheck,
+} from "lucide-react";
 import type { ClientCartera, Invoice } from "@/lib/parsers/pdfParser";
 import type { Contact } from "@/lib/parsers/excelParser";
 import {
@@ -10,7 +22,6 @@ import {
   formatCurrency,
 } from "@/lib/messaging";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -37,186 +48,289 @@ export function ClientRow({
     [filteredInvoices],
   );
 
-  const nombre =
-    contact?.nombreComercial || contact?.razonSocial || client.nombre || `Cliente ${client.id}`;
+  // Razón social = nombre principal del cliente
+  const principal =
+    contact?.razonSocial || client.nombre || `Cliente ${client.id}`;
+  const secundario = contact?.nombreComercial || "";
 
   const emailLink = useMemo(() => {
     if (!contact?.correo || !filteredInvoices.length) return null;
     const body = buildMessage(
       emailTemplate,
-      { nombre, invoices: filteredInvoices, total: filteredTotal },
+      { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
       "email",
     );
     return buildGmailLink(contact.correo, contact.correosSecundarios, subject, body);
-  }, [contact, filteredInvoices, emailTemplate, subject, nombre, filteredTotal]);
+  }, [contact, filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
 
   const waLink = useMemo(() => {
     if (!contact?.telefono || !filteredInvoices.length) return null;
     const msg = buildMessage(
       whatsappTemplate,
-      { nombre, invoices: filteredInvoices, total: filteredTotal },
+      { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
       "whatsapp",
     );
     return buildWhatsAppLink(contact.telefono, msg);
-  }, [contact, filteredInvoices, whatsappTemplate, nombre, filteredTotal]);
+  }, [contact, filteredInvoices, whatsappTemplate, principal, filteredTotal]);
 
   const hasContact = !!contact;
   const noFiltered = filteredInvoices.length === 0;
+  const hasAnyAction = !!emailLink || !!waLink;
 
   return (
-    <>
-      <tr
-        className={cn(
-          "group cursor-pointer border-t border-border transition-colors hover:bg-accent/30",
-          noFiltered && "opacity-50",
-        )}
+    <article
+      className={cn(
+        "overflow-hidden rounded-xl border bg-card shadow-[var(--shadow-card)] transition-all",
+        open ? "border-primary/40 ring-1 ring-primary/20" : "border-border hover:border-primary/30",
+        noFiltered && "opacity-60",
+      )}
+    >
+      {/* Summary row */}
+      <button
+        type="button"
         onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-accent/30"
       >
-        <td className="px-4 py-3 align-middle">
-          <button className="text-muted-foreground" aria-label="Expandir">
-            {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </button>
-        </td>
-        <td className="px-4 py-3 align-middle text-sm font-mono text-muted-foreground">
+        {/* ID badge */}
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-sm font-semibold text-primary">
           {client.id}
-        </td>
-        <td className="px-4 py-3 align-middle">
-          <div className="font-medium text-foreground">{nombre}</div>
+        </div>
+
+        {/* Names */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-sm font-semibold uppercase tracking-tight text-foreground">
+              {principal}
+            </h3>
+            {open ? (
+              <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            )}
+          </div>
+          {secundario && (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{secundario}</p>
+          )}
           {!hasContact && (
-            <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-warning">
+            <div className="mt-1 inline-flex items-center gap-1 text-xs text-warning">
               <AlertCircle className="h-3 w-3" /> Sin contacto en directorio
             </div>
           )}
-        </td>
-        <td className="px-4 py-3 text-right align-middle font-semibold tabular-nums text-foreground">
-          {formatCurrency(filteredTotal)}
-          {filteredTotal !== client.total && (
-            <div className="text-xs font-normal text-muted-foreground">
-              de {formatCurrency(client.total)}
-            </div>
-          )}
-        </td>
-        <td className="px-4 py-3 text-center align-middle">
-          <Badge variant="secondary" className="font-mono">
-            {filteredInvoices.length}
-            <span className="text-muted-foreground">/{client.invoices.length}</span>
-          </Badge>
-        </td>
-        <td className="px-4 py-3 align-middle">
-          <div
-            className="flex justify-end gap-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Button
-              size="sm"
-              variant="default"
-              className="gap-1.5"
-              disabled={!emailLink}
-              asChild={!!emailLink}
-              title={!contact?.correo ? "Sin correo" : noFiltered ? "Sin facturas filtradas" : ""}
-            >
-              {emailLink ? (
-                <a href={emailLink} target="_blank" rel="noopener noreferrer">
-                  <Mail className="h-3.5 w-3.5" /> Correo
-                </a>
-              ) : (
-                <span>
-                  <Mail className="h-3.5 w-3.5" /> Correo
-                </span>
-              )}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 border-success/30 text-success hover:bg-success/10 hover:text-success"
-              disabled={!waLink}
-              asChild={!!waLink}
-              title={!contact?.telefono ? "Sin teléfono" : noFiltered ? "Sin facturas filtradas" : ""}
-            >
-              {waLink ? (
-                <a href={waLink} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                </a>
-              ) : (
-                <span>
-                  <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                </span>
-              )}
-            </Button>
+        </div>
+
+        {/* Total + invoice count */}
+        <div className="hidden text-right sm:block">
+          <div className="text-base font-bold tabular-nums text-destructive">
+            {formatCurrency(filteredTotal)}
           </div>
-        </td>
-      </tr>
+          <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <FileText className="h-3 w-3" />
+            {filteredInvoices.length} {filteredInvoices.length === 1 ? "factura" : "facturas"}
+          </div>
+        </div>
+
+        {/* Cobrar button (primary action) */}
+        <div
+          className="flex shrink-0 gap-2"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          role="presentation"
+        >
+          <Button
+            size="sm"
+            variant="success"
+            className="gap-1.5"
+            disabled={!waLink && !emailLink}
+            asChild={hasAnyAction}
+            title={
+              !contact
+                ? "Sin contacto"
+                : noFiltered
+                  ? "Sin facturas filtradas"
+                  : "Enviar cobro"
+            }
+          >
+            {waLink ? (
+              <a href={waLink} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="h-3.5 w-3.5" /> Cobrar
+              </a>
+            ) : emailLink ? (
+              <a href={emailLink} target="_blank" rel="noopener noreferrer">
+                <Mail className="h-3.5 w-3.5" /> Cobrar
+              </a>
+            ) : (
+              <span>
+                <MessageCircle className="h-3.5 w-3.5" /> Cobrar
+              </span>
+            )}
+          </Button>
+        </div>
+      </button>
+
+      {/* Total row mobile */}
+      <div className="flex items-center justify-between border-t border-border bg-muted/20 px-4 py-2 sm:hidden">
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <FileText className="h-3 w-3" />
+          {filteredInvoices.length} {filteredInvoices.length === 1 ? "factura" : "facturas"}
+        </span>
+        <span className="text-sm font-bold tabular-nums text-destructive">
+          {formatCurrency(filteredTotal)}
+        </span>
+      </div>
+
+      {/* Expanded panel */}
       {open && (
-        <tr className="bg-muted/30">
-          <td colSpan={6} className="px-6 py-4">
-            <div className="grid gap-4 lg:grid-cols-[1fr,1.4fr]">
-              <div className="space-y-2 text-sm">
-                <div className="font-semibold text-foreground">Datos de contacto</div>
-                <dl className="grid grid-cols-[120px,1fr] gap-y-1 text-xs">
-                  <dt className="text-muted-foreground">Razón social</dt>
-                  <dd className="text-foreground">{contact?.razonSocial || "—"}</dd>
-                  <dt className="text-muted-foreground">Correo</dt>
-                  <dd className="break-all text-foreground">{contact?.correo || "—"}</dd>
-                  <dt className="text-muted-foreground">CC</dt>
-                  <dd className="break-all text-foreground">
-                    {contact?.correosSecundarios.join("; ") || "—"}
-                  </dd>
-                  <dt className="text-muted-foreground">Teléfono</dt>
-                  <dd className="text-foreground">{contact?.telefono || "—"}</dd>
-                  <dt className="text-muted-foreground">Días config.</dt>
-                  <dd className="text-foreground">
-                    {contact?.diasVencimiento ?? client.diasConfig ?? "—"}
-                  </dd>
-                  <dt className="text-muted-foreground">Status</dt>
-                  <dd className="text-foreground">{contact?.status || "—"}</dd>
-                </dl>
-              </div>
-              <div>
-                <div className="mb-2 text-sm font-semibold text-foreground">
-                  Facturas ({filteredInvoices.length})
-                </div>
-                <div className="overflow-hidden rounded-lg border border-border">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-medium">Doc</th>
-                        <th className="px-3 py-2 text-left font-medium">Fecha</th>
-                        <th className="px-3 py-2 text-right font-medium">Días</th>
-                        <th className="px-3 py-2 text-right font-medium">Monto</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredInvoices.map((inv) => (
-                        <tr key={inv.doc} className="border-t border-border">
-                          <td className="px-3 py-1.5 font-mono">{inv.doc}</td>
-                          <td className="px-3 py-1.5">{inv.fecha}</td>
-                          <td className="px-3 py-1.5 text-right tabular-nums">
-                            <span
-                              className={cn(
-                                inv.diasVencido > 90
-                                  ? "text-destructive font-semibold"
-                                  : inv.diasVencido > 30
-                                    ? "text-warning"
-                                    : "text-foreground",
-                              )}
-                            >
-                              {inv.diasVencido}
-                            </span>
-                          </td>
-                          <td className="px-3 py-1.5 text-right tabular-nums font-medium">
-                            {formatCurrency(inv.monto)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+        <div className="border-t border-border bg-muted/20">
+          {/* Contact info card */}
+          <div className="grid gap-3 border-b border-border px-4 py-4 sm:grid-cols-2 lg:grid-cols-4">
+            <InfoField
+              icon={<Users className="h-3.5 w-3.5" />}
+              label="Razón social"
+              value={contact?.razonSocial || "—"}
+            />
+            <InfoField
+              icon={<AtSign className="h-3.5 w-3.5" />}
+              label="Correo"
+              value={contact?.correo || "—"}
+              mono
+            />
+            <InfoField
+              icon={<Mail className="h-3.5 w-3.5" />}
+              label="Correos CC"
+              value={contact?.correosSecundarios.join("; ") || "—"}
+              mono
+            />
+            <InfoField
+              icon={<Phone className="h-3.5 w-3.5" />}
+              label="Teléfono"
+              value={contact?.telefono || "—"}
+              mono
+            />
+            <InfoField
+              icon={<CalendarClock className="h-3.5 w-3.5" />}
+              label="Días configurados"
+              value={(contact?.diasVencimiento ?? client.diasConfig)?.toString() || "—"}
+            />
+            <InfoField
+              icon={<BadgeCheck className="h-3.5 w-3.5" />}
+              label="Estatus"
+              value={contact?.status || "—"}
+            />
+            {/* Secondary actions */}
+            <div className="sm:col-span-2 lg:col-span-2 flex items-end justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                disabled={!emailLink}
+                asChild={!!emailLink}
+              >
+                {emailLink ? (
+                  <a href={emailLink} target="_blank" rel="noopener noreferrer">
+                    <Mail className="h-3.5 w-3.5" /> Enviar correo
+                  </a>
+                ) : (
+                  <span>
+                    <Mail className="h-3.5 w-3.5" /> Enviar correo
+                  </span>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-success/30 text-success hover:bg-success/10 hover:text-success"
+                disabled={!waLink}
+                asChild={!!waLink}
+              >
+                {waLink ? (
+                  <a href={waLink} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                  </a>
+                ) : (
+                  <span>
+                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                  </span>
+                )}
+              </Button>
             </div>
-          </td>
-        </tr>
+          </div>
+
+          {/* Invoices table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Documento</th>
+                  <th className="px-4 py-2.5 font-medium">Fecha</th>
+                  <th className="px-4 py-2.5 font-medium">Concepto</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Días Vencido</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Monto</th>
+                </tr>
+              </thead>
+              <tbody className="bg-card">
+                {filteredInvoices.map((inv) => (
+                  <tr
+                    key={inv.doc}
+                    className="border-t border-border transition-colors hover:bg-accent/20"
+                  >
+                    <td className="px-4 py-2.5 font-mono text-foreground">{inv.doc}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{inv.fecha}</td>
+                    <td className="px-4 py-2.5 text-foreground">{inv.concepto || "Factura"}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          inv.diasVencido > 90
+                            ? "text-destructive"
+                            : inv.diasVencido > 30
+                              ? "text-warning"
+                              : "text-foreground",
+                        )}
+                      >
+                        {inv.diasVencido}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-foreground">
+                      {formatCurrency(inv.monto)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
-    </>
+    </article>
+  );
+}
+
+function InfoField({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-0.5 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <div
+        className={cn(
+          "break-words text-xs text-foreground",
+          mono && "font-mono",
+          value === "—" && "text-muted-foreground",
+        )}
+      >
+        {value}
+      </div>
+    </div>
   );
 }
 
