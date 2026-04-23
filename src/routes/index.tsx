@@ -347,43 +347,32 @@ function Dashboard() {
               </div>
             </section>
 
-            {/* Table */}
-            <section className="mt-6 overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)]">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50">
-                    <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="w-10 px-4 py-3"></th>
-                      <th className="px-4 py-3 text-left font-medium">ID</th>
-                      <th className="px-4 py-3 text-left font-medium">Cliente</th>
-                      <th className="px-4 py-3 text-right font-medium">Deuda</th>
-                      <th className="px-4 py-3 text-center font-medium">Facturas</th>
-                      <th className="px-4 py-3 text-right font-medium">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {enriched.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                          No hay clientes que coincidan con los filtros.
-                        </td>
-                      </tr>
-                    ) : (
-                      enriched.map((row) => (
-                        <ClientRow
-                          key={row.client.id}
-                          client={row.client}
-                          contact={row.contact}
-                          filteredInvoices={row.filteredInvoices}
-                          emailTemplate={emailTpl}
-                          whatsappTemplate={waTpl}
-                          subject={subject}
-                        />
-                      ))
-                    )}
-                  </tbody>
-                </table>
+            {/* Clients list */}
+            <section className="mt-6">
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="text-sm font-semibold text-foreground">
+                  Clientes <span className="text-muted-foreground">({enriched.length})</span>
+                </h2>
               </div>
+              {enriched.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border bg-card/50 px-4 py-12 text-center text-sm text-muted-foreground">
+                  No hay clientes que coincidan con los filtros.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {enriched.map((row) => (
+                    <ClientRow
+                      key={row.client.id}
+                      client={row.client}
+                      contact={row.contact}
+                      filteredInvoices={row.filteredInvoices}
+                      emailTemplate={emailTpl}
+                      whatsappTemplate={waTpl}
+                      subject={subject}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           </>
         )}
