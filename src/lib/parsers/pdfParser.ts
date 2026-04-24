@@ -2,9 +2,14 @@
 // Uses pdfjs-dist to extract text, then pattern-matches client headers + invoice rows.
 
 import * as pdfjsLib from "pdfjs-dist";
-import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = PdfWorker;
+// Bundle the worker as a dedicated chunk and let Vite emit a hashed URL.
+// `new URL(..., import.meta.url)` is the recommended pattern for Web Workers
+// in Vite, and produces a relative URL that works on Cloudflare Pages.
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url,
+).toString();
 
 export interface Invoice {
   doc: string;
