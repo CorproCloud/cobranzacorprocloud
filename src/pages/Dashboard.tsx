@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -29,21 +28,7 @@ import {
   formatCurrency,
 } from "@/lib/messaging";
 
-export const Route = createFileRoute("/")({
-  component: Dashboard,
-  head: () => ({
-    meta: [
-      { title: "Centro de Cobranza | Cobranza Sistematizada" },
-      {
-        name: "description",
-        content:
-          "Automatiza tus recordatorios de pago: procesa cartera (PDF) + directorio (Excel) y genera correos y WhatsApp en un clic.",
-      },
-    ],
-  }),
-});
-
-function Dashboard() {
+export default function Dashboard() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [xlsxFile, setXlsxFile] = useState<File | null>(null);
   const [clients, setClients] = useState<ClientCartera[]>([]);
@@ -117,7 +102,6 @@ function Dashboard() {
     return m;
   }, [contacts]);
 
-  // Apply filters per-client
   const enriched = useMemo(() => {
     return clients
       .map((c) => {
@@ -165,7 +149,6 @@ function Dashboard() {
     <div className="min-h-screen bg-[image:var(--gradient-subtle)]">
       <Toaster richColors position="top-right" />
 
-      {/* Header */}
       <header className="border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
@@ -180,9 +163,7 @@ function Dashboard() {
               <h1 className="text-lg font-bold tracking-tight text-foreground">
                 Centro de Cobranza
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Cobranza sistematizada
-              </p>
+              <p className="text-xs text-muted-foreground">Cobranza sistematizada</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -203,7 +184,6 @@ function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-8">
-        {/* Upload zones */}
         <section className="grid gap-4 md:grid-cols-2">
           <UploadZone
             accept="application/pdf,.pdf"
@@ -225,7 +205,6 @@ function Dashboard() {
           />
         </section>
 
-        {/* Process button */}
         <div className="mt-6 flex justify-center">
           <Button
             size="lg"
@@ -249,7 +228,6 @@ function Dashboard() {
 
         {ready && (
           <>
-            {/* Stats */}
             <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 icon={<Users className="h-5 w-5" />}
@@ -281,7 +259,6 @@ function Dashboard() {
               />
             </section>
 
-            {/* Filters */}
             <section className="mt-6 rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]">
               <div className="flex flex-wrap items-end gap-4">
                 <div className="flex-1 min-w-[200px]">
@@ -322,11 +299,7 @@ function Dashboard() {
                   />
                 </div>
                 <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-2.5">
-                  <Switch
-                    id="overdue"
-                    checked={onlyOverdue}
-                    onCheckedChange={setOnlyOverdue}
-                  />
+                  <Switch id="overdue" checked={onlyOverdue} onCheckedChange={setOnlyOverdue} />
                   <Label htmlFor="overdue" className="cursor-pointer text-sm">
                     Solo facturas vencidas
                   </Label>
@@ -347,7 +320,6 @@ function Dashboard() {
               </div>
             </section>
 
-            {/* Clients list */}
             <section className="mt-6">
               <div className="mb-3 flex items-baseline justify-between">
                 <h2 className="text-sm font-semibold text-foreground">
