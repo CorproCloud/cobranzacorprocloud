@@ -299,6 +299,62 @@ export function ClientRow({
           </div>
         </div>
       )}
+
+      <Dialog open={emailPickerOpen} onOpenChange={setEmailPickerOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Enviar cobro por correo</DialogTitle>
+            <DialogDescription>
+              Elige tu cliente de correo. Se abrirá en una pestaña nueva con el mensaje listo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button
+              variant="outline"
+              className="justify-start gap-2"
+              asChild
+              disabled={!emailLinks}
+            >
+              <a
+                href={emailLinks?.gmail ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setEmailPickerOpen(false)}
+              >
+                <Mail className="h-4 w-4 text-[#EA4335]" /> Gmail
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start gap-2"
+              asChild
+              disabled={!emailLinks}
+            >
+              <a
+                href={emailLinks?.outlook ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setEmailPickerOpen(false)}
+              >
+                <Mail className="h-4 w-4 text-[#0078D4]" /> Outlook
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              className="justify-start gap-2"
+              asChild
+              disabled={!emailLinks}
+            >
+              <a
+                href={emailLinks?.mailto ?? "#"}
+                onClick={() => setEmailPickerOpen(false)}
+              >
+                <Mail className="h-4 w-4" /> Otro (cliente predeterminado)
+              </a>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </article>
   );
 }
