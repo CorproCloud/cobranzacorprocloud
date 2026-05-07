@@ -97,12 +97,11 @@ export function ClientRow({
     setEmailPickerOpen(false);
 
     if (url.startsWith("mailto:")) {
-      window.location.href = url;
+      window.open(url, "_blank");
       return;
     }
 
-    const opened = window.open(url, "_blank", "noopener,noreferrer");
-    if (!opened) window.location.href = url;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
