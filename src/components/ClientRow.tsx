@@ -59,8 +59,7 @@ export function ClientRow({
   );
 
   // Razón social = nombre principal del cliente
-  const principal =
-    contact?.razonSocial || client.nombre || `Cliente ${client.id}`;
+  const principal = contact?.razonSocial || client.nombre || `Cliente ${client.id}`;
   const secundario = contact?.nombreComercial || "";
 
   const emailLinks = useMemo(() => {
@@ -183,13 +182,7 @@ export function ClientRow({
               if (emailLink) setEmailPickerOpen(true);
               else if (waLink) window.open(waLink, "_blank", "noopener,noreferrer");
             }}
-            title={
-              !contact
-                ? "Sin contacto"
-                : noFiltered
-                  ? "Sin facturas filtradas"
-                  : "Enviar cobro"
-            }
+            title={!contact ? "Sin contacto" : noFiltered ? "Sin facturas filtradas" : "Enviar cobro"}
           >
             <Mail className="h-3.5 w-3.5" /> Cobrar
           </Button>
