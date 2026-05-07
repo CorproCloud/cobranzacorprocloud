@@ -15,13 +15,22 @@ import {
 import type { ClientCartera, Invoice } from "@/lib/parsers/pdfParser";
 import type { Contact } from "@/lib/parsers/excelParser";
 import {
+  buildGmailLink,
   buildMailtoLink,
   buildMessage,
+  buildOutlookLink,
   buildWhatsAppLink,
   emailSubject as defaultSubject,
   formatCurrency,
 } from "@/lib/messaging";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -42,6 +51,7 @@ export function ClientRow({
   subject,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [emailPickerOpen, setEmailPickerOpen] = useState(false);
 
   const filteredTotal = useMemo(
     () => filteredInvoices.reduce((s, i) => s + i.monto, 0),
@@ -53,15 +63,21 @@ export function ClientRow({
     contact?.razonSocial || client.nombre || `Cliente ${client.id}`;
   const secundario = contact?.nombreComercial || "";
 
-  const emailLink = useMemo(() => {
+  const emailLinks = useMemo(() => {
     if (!contact?.correo || !filteredInvoices.length) return null;
     const body = buildMessage(
       emailTemplate,
       { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
       "email",
     );
-    return buildMailtoLink(contact.correo, contact.correosSecundarios, subject, body);
+    const cc = contact.correosSecundarios;
+    return {
+      gmail: buildGmailLink(contact.correo, cc, subject, body),
+      outlook: buildOutlookLink(contact.correo, cc, subject, body),
+      mailto: buildMailtoLink(contact.correo, cc, subject, body),
+    };
   }, [contact, filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
+  const emailLink = emailLinks?.mailto ?? null;
 
   const waLink = useMemo(() => {
     if (!contact?.telefono || !filteredInvoices.length) return null;
