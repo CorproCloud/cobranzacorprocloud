@@ -101,15 +101,6 @@ export function ClientRow({
       return;
     }
 
-    try {
-      if (window.self !== window.top && window.top) {
-        window.top.location.href = url;
-        return;
-      }
-    } catch {
-      // If the preview frame blocks top navigation, fall back to a normal tab.
-    }
-
     const opened = window.open(url, "_blank", "noopener,noreferrer");
     if (!opened) window.location.href = url;
   };
