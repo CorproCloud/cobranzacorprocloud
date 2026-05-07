@@ -89,14 +89,15 @@ export function buildOutlookLink(
   subject: string,
   body: string,
 ): string {
-  const params = new URLSearchParams({
-    path: "/mail/action/compose",
-    to,
-    subject,
-    body,
-  });
-  if (cc.length) params.set("cc", cc.join(","));
-  return `https://outlook.live.com/mail/0/deeplink/compose?${params.toString()}`;
+  const enc = encodeURIComponent;
+  const parts = [
+    `path=${enc("/mail/action/compose")}`,
+    `to=${enc(to)}`,
+    `subject=${enc(subject)}`,
+    `body=${enc(body)}`,
+  ];
+  if (cc.length) parts.push(`cc=${enc(cc.join(","))}`);
+  return `https://outlook.live.com/mail/0/deeplink/compose?${parts.join("&")}`;
 }
 
 export function buildWhatsAppLink(phone: string, message: string): string {
