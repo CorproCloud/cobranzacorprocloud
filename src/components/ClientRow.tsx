@@ -15,7 +15,7 @@ import {
 import type { ClientCartera, Invoice } from "@/lib/parsers/pdfParser";
 import type { Contact } from "@/lib/parsers/excelParser";
 import {
-  buildGmailLink,
+  buildMailtoLink,
   buildMessage,
   buildWhatsAppLink,
   emailSubject as defaultSubject,
@@ -60,7 +60,7 @@ export function ClientRow({
       { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
       "email",
     );
-    return buildGmailLink(contact.correo, contact.correosSecundarios, subject, body);
+    return buildMailtoLink(contact.correo, contact.correosSecundarios, subject, body);
   }, [contact, filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
 
   const waLink = useMemo(() => {
