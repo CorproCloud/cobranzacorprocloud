@@ -230,17 +230,9 @@ export function ClientRow({
                 variant="outline"
                 className="gap-1.5"
                 disabled={!emailLink}
-                asChild={!!emailLink}
+                onClick={() => setEmailPickerOpen(true)}
               >
-                {emailLink ? (
-                  <a href={emailLink} target="_blank" rel="noopener noreferrer">
-                    <Mail className="h-3.5 w-3.5" /> Enviar correo
-                  </a>
-                ) : (
-                  <span>
-                    <Mail className="h-3.5 w-3.5" /> Enviar correo
-                  </span>
-                )}
+                <Mail className="h-3.5 w-3.5" /> Enviar correo
               </Button>
               <Button
                 size="sm"
