@@ -59,8 +59,7 @@ export function ClientRow({
   );
 
   // Razón social = nombre principal del cliente
-  const principal =
-    contact?.razonSocial || client.nombre || `Cliente ${client.id}`;
+  const principal = contact?.razonSocial || client.nombre || `Cliente ${client.id}`;
   const secundario = contact?.nombreComercial || "";
 
   const emailLinks = useMemo(() => {
@@ -92,6 +91,28 @@ export function ClientRow({
   const hasContact = !!contact;
   const noFiltered = filteredInvoices.length === 0;
   const hasAnyAction = !!emailLink || !!waLink;
+
+  const openEmailLink = (url?: string) => {
+    if (!url) return;
+    setEmailPickerOpen(false);
+
+    if (url.startsWith("mailto:")) {
+      window.location.href = url;
+      return;
+    }
+
+    try {
+      if (window.self !== window.top && window.top) {
+        window.top.location.href = url;
+        return;
+      }
+    } catch {
+      // If the preview frame blocks top navigation, fall back to a normal tab.
+    }
+
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) window.location.href = url;
+  };
 
   return (
     <article
@@ -162,11 +183,7 @@ export function ClientRow({
               else if (waLink) window.open(waLink, "_blank", "noopener,noreferrer");
             }}
             title={
-              !contact
-                ? "Sin contacto"
-                : noFiltered
-                  ? "Sin facturas filtradas"
-                  : "Enviar cobro"
+              !contact ? "Sin contacto" : noFiltered ? "Sin facturas filtradas" : "Enviar cobro"
             }
           >
             <Mail className="h-3.5 w-3.5" /> Cobrar
@@ -305,52 +322,33 @@ export function ClientRow({
           <DialogHeader>
             <DialogTitle>Enviar cobro por correo</DialogTitle>
             <DialogDescription>
-              Elige tu cliente de correo. Se abrirá en una pestaña nueva con el mensaje listo.
+              Elige tu cliente de correo. Se abrirá con el mensaje listo.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
             <Button
               variant="outline"
               className="justify-start gap-2"
-              asChild
               disabled={!emailLinks}
+              onClick={() => openEmailLink(emailLinks?.gmail)}
             >
-              <a
-                href={emailLinks?.gmail ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setEmailPickerOpen(false)}
-              >
-                <Mail className="h-4 w-4 text-[#EA4335]" /> Gmail
-              </a>
+              <Mail className="h-4 w-4 text-gmail" /> Gmail
             </Button>
             <Button
               variant="outline"
               className="justify-start gap-2"
-              asChild
               disabled={!emailLinks}
+              onClick={() => openEmailLink(emailLinks?.outlook)}
             >
-              <a
-                href={emailLinks?.outlook ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setEmailPickerOpen(false)}
-              >
-                <Mail className="h-4 w-4 text-[#0078D4]" /> Outlook
-              </a>
+              <Mail className="h-4 w-4 text-outlook" /> Outlook
             </Button>
             <Button
               variant="ghost"
               className="justify-start gap-2"
-              asChild
               disabled={!emailLinks}
+              onClick={() => openEmailLink(emailLinks?.mailto)}
             >
-              <a
-                href={emailLinks?.mailto ?? "#"}
-                onClick={() => setEmailPickerOpen(false)}
-              >
-                <Mail className="h-4 w-4" /> Otro (cliente predeterminado)
-              </a>
+              <Mail className="h-4 w-4" /> Otro (cliente predeterminado)
             </Button>
           </div>
         </DialogContent>
