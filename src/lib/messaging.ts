@@ -83,6 +83,22 @@ export function buildGmailLink(
   return `https://mail.google.com/mail/?${params.toString()}`;
 }
 
+export function buildOutlookLink(
+  to: string,
+  cc: string[],
+  subject: string,
+  body: string,
+): string {
+  const params = new URLSearchParams({
+    path: "/mail/action/compose",
+    to,
+    subject,
+    body,
+  });
+  if (cc.length) params.set("cc", cc.join(","));
+  return `https://outlook.live.com/mail/0/deeplink/compose?${params.toString()}`;
+}
+
 export function buildWhatsAppLink(phone: string, message: string): string {
   const cleaned = phone.replace(/\D/g, "");
   return `https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`;

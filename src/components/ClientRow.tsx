@@ -15,13 +15,22 @@ import {
 import type { ClientCartera, Invoice } from "@/lib/parsers/pdfParser";
 import type { Contact } from "@/lib/parsers/excelParser";
 import {
+  buildGmailLink,
   buildMailtoLink,
   buildMessage,
+  buildOutlookLink,
   buildWhatsAppLink,
   emailSubject as defaultSubject,
   formatCurrency,
 } from "@/lib/messaging";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -42,6 +51,7 @@ export function ClientRow({
   subject,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [emailPickerOpen, setEmailPickerOpen] = useState(false);
 
   const filteredTotal = useMemo(
     () => filteredInvoices.reduce((s, i) => s + i.monto, 0),
@@ -53,15 +63,21 @@ export function ClientRow({
     contact?.razonSocial || client.nombre || `Cliente ${client.id}`;
   const secundario = contact?.nombreComercial || "";
 
-  const emailLink = useMemo(() => {
+  const emailLinks = useMemo(() => {
     if (!contact?.correo || !filteredInvoices.length) return null;
     const body = buildMessage(
       emailTemplate,
       { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
       "email",
     );
-    return buildMailtoLink(contact.correo, contact.correosSecundarios, subject, body);
+    const cc = contact.correosSecundarios;
+    return {
+      gmail: buildGmailLink(contact.correo, cc, subject, body),
+      outlook: buildOutlookLink(contact.correo, cc, subject, body),
+      mailto: buildMailtoLink(contact.correo, cc, subject, body),
+    };
   }, [contact, filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
+  const emailLink = emailLinks?.mailto ?? null;
 
   const waLink = useMemo(() => {
     if (!contact?.telefono || !filteredInvoices.length) return null;
@@ -141,7 +157,10 @@ export function ClientRow({
             variant="success"
             className="gap-1.5"
             disabled={!waLink && !emailLink}
-            asChild={hasAnyAction}
+            onClick={() => {
+              if (emailLink) setEmailPickerOpen(true);
+              else if (waLink) window.open(waLink, "_blank", "noopener,noreferrer");
+            }}
             title={
               !contact
                 ? "Sin contacto"
@@ -150,19 +169,7 @@ export function ClientRow({
                   : "Enviar cobro"
             }
           >
-            {waLink ? (
-              <a href={waLink} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="h-3.5 w-3.5" /> Cobrar
-              </a>
-            ) : emailLink ? (
-              <a href={emailLink} target="_blank" rel="noopener noreferrer">
-                <Mail className="h-3.5 w-3.5" /> Cobrar
-              </a>
-            ) : (
-              <span>
-                <MessageCircle className="h-3.5 w-3.5" /> Cobrar
-              </span>
-            )}
+            <Mail className="h-3.5 w-3.5" /> Cobrar
           </Button>
         </div>
       </button>
@@ -223,17 +230,9 @@ export function ClientRow({
                 variant="outline"
                 className="gap-1.5"
                 disabled={!emailLink}
-                asChild={!!emailLink}
+                onClick={() => setEmailPickerOpen(true)}
               >
-                {emailLink ? (
-                  <a href={emailLink} target="_blank" rel="noopener noreferrer">
-                    <Mail className="h-3.5 w-3.5" /> Enviar correo
-                  </a>
-                ) : (
-                  <span>
-                    <Mail className="h-3.5 w-3.5" /> Enviar correo
-                  </span>
-                )}
+                <Mail className="h-3.5 w-3.5" /> Enviar correo
               </Button>
               <Button
                 size="sm"
@@ -300,6 +299,62 @@ export function ClientRow({
           </div>
         </div>
       )}
+
+      <Dialog open={emailPickerOpen} onOpenChange={setEmailPickerOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Enviar cobro por correo</DialogTitle>
+            <DialogDescription>
+              Elige tu cliente de correo. Se abrirá en una pestaña nueva con el mensaje listo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button
+              variant="outline"
+              className="justify-start gap-2"
+              asChild
+              disabled={!emailLinks}
+            >
+              <a
+                href={emailLinks?.gmail ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setEmailPickerOpen(false)}
+              >
+                <Mail className="h-4 w-4 text-[#EA4335]" /> Gmail
+              </a>
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start gap-2"
+              asChild
+              disabled={!emailLinks}
+            >
+              <a
+                href={emailLinks?.outlook ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setEmailPickerOpen(false)}
+              >
+                <Mail className="h-4 w-4 text-[#0078D4]" /> Outlook
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              className="justify-start gap-2"
+              asChild
+              disabled={!emailLinks}
+            >
+              <a
+                href={emailLinks?.mailto ?? "#"}
+                onClick={() => setEmailPickerOpen(false)}
+              >
+                <Mail className="h-4 w-4" /> Otro (cliente predeterminado)
+              </a>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </article>
   );
 }
