@@ -157,7 +157,10 @@ export function ClientRow({
             variant="success"
             className="gap-1.5"
             disabled={!waLink && !emailLink}
-            asChild={hasAnyAction}
+            onClick={() => {
+              if (emailLink) setEmailPickerOpen(true);
+              else if (waLink) window.open(waLink, "_blank", "noopener,noreferrer");
+            }}
             title={
               !contact
                 ? "Sin contacto"
@@ -166,19 +169,7 @@ export function ClientRow({
                   : "Enviar cobro"
             }
           >
-            {waLink ? (
-              <a href={waLink} target="_blank" rel="noopener noreferrer">
-                <MessageCircle className="h-3.5 w-3.5" /> Cobrar
-              </a>
-            ) : emailLink ? (
-              <a href={emailLink} target="_blank" rel="noopener noreferrer">
-                <Mail className="h-3.5 w-3.5" /> Cobrar
-              </a>
-            ) : (
-              <span>
-                <MessageCircle className="h-3.5 w-3.5" /> Cobrar
-              </span>
-            )}
+            <Mail className="h-3.5 w-3.5" /> Cobrar
           </Button>
         </div>
       </button>
