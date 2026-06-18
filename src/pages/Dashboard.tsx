@@ -470,10 +470,20 @@ export default function Dashboard() {
             </section>
 
             <section className="mt-6">
-              <div className="mb-3 flex items-baseline justify-between">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="text-sm font-semibold text-foreground">
                   Clientes <span className="text-muted-foreground">({enriched.length})</span>
                 </h2>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                  disabled={downloadingPdf || enriched.length === 0}
+                  onClick={handleDownloadPdf}
+                >
+                  <Download className="h-4 w-4" />
+                  {downloadingPdf ? "Generando…" : "Descargar PDF"}
+                </Button>
               </div>
               {enriched.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card/50 px-4 py-12 text-center text-sm text-muted-foreground">
