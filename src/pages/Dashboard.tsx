@@ -67,6 +67,7 @@ export default function Dashboard() {
   const [waTpl, setWaTpl] = useState(DEFAULT_WHATSAPP_TEMPLATE);
 
   const [cloudFiles, setCloudFiles] = useState<ArchivoNube[]>([]);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [cloudBusy, setCloudBusy] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
   const [savingXlsx, setSavingXlsx] = useState(false);
