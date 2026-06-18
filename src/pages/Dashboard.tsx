@@ -282,25 +282,60 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-7xl px-6 py-8">
         <section className="grid gap-4 md:grid-cols-2">
-          <UploadZone
-            accept="application/pdf,.pdf"
-            icon="pdf"
-            label="Cartera de clientes (PDF)"
-            hint="Reporte de cuentas por cobrar exportado del ERP"
-            file={pdfFile}
-            onFile={handlePdf}
-            loading={loadingPdf}
-          />
-          <UploadZone
-            accept=".xlsx,.xls,.csv"
-            icon="excel"
-            label="Directorio de contactos (Excel/CSV)"
-            hint="Códigos, correos y teléfonos de clientes"
-            file={xlsxFile}
-            onFile={handleXlsx}
-            loading={loadingXlsx}
-          />
+          <div className="space-y-2">
+            <UploadZone
+              accept="application/pdf,.pdf"
+              icon="pdf"
+              label="Cartera de clientes (PDF)"
+              hint="Reporte de cuentas por cobrar exportado del ERP"
+              file={pdfFile}
+              onFile={handlePdf}
+              loading={loadingPdf}
+            />
+            {pdfFile && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                disabled={savingPdf}
+                onClick={() => saveToCloud("pdf")}
+              >
+                <CloudUpload className="h-4 w-4" />
+                {savingPdf ? "Guardando…" : "Guardar en la nube"}
+              </Button>
+            )}
+          </div>
+          <div className="space-y-2">
+            <UploadZone
+              accept=".xlsx,.xls,.csv"
+              icon="excel"
+              label="Directorio de contactos (Excel/CSV)"
+              hint="Códigos, correos y teléfonos de clientes"
+              file={xlsxFile}
+              onFile={handleXlsx}
+              loading={loadingXlsx}
+            />
+            {xlsxFile && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                disabled={savingXlsx}
+                onClick={() => saveToCloud("excel")}
+              >
+                <CloudUpload className="h-4 w-4" />
+                {savingXlsx ? "Guardando…" : "Guardar en la nube"}
+              </Button>
+            )}
+          </div>
         </section>
+
+        <CloudFiles
+          files={cloudFiles}
+          busy={cloudBusy || processing}
+          onChanged={refreshCloud}
+          onUse={useFromCloud}
+        />
 
         <div className="mt-6 flex justify-center">
           <Button
