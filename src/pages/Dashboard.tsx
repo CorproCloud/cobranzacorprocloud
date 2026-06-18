@@ -507,8 +507,8 @@ export default function Dashboard() {
               Carga tu cartera para comenzar
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Sube el PDF de cuentas por cobrar y, opcionalmente, el directorio de contactos. Tus
-              archivos se procesan localmente — nunca salen de tu navegador.
+              Sube el PDF de cuentas por cobrar y, opcionalmente, el directorio de contactos.
+              Puedes guardarlos en la nube para reutilizarlos cuando quieras.
             </p>
           </section>
         )}
