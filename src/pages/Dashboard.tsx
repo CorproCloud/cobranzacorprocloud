@@ -436,6 +436,23 @@ export default function Dashboard() {
                     Solo facturas vencidas
                   </Label>
                 </div>
+                <div>
+                  <Label className="mb-1.5 block text-xs">Ordenar por</Label>
+                  <Select
+                    value={sortOrder}
+                    onValueChange={(v) => setSortOrder(v as SortOrder)}
+                  >
+                    <SelectTrigger className="w-[210px] gap-2">
+                      <ArrowDownWideNarrow className="h-4 w-4 text-muted-foreground" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="deuda_desc">Deuda: mayor a menor</SelectItem>
+                      <SelectItem value="deuda_asc">Deuda: menor a mayor</SelectItem>
+                      <SelectItem value="dias_desc">Días vencidos: más antiguos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 {(dateFrom || dateTo || search) && (
                   <Button
                     variant="ghost"
