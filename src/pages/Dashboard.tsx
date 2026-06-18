@@ -4,6 +4,7 @@ import {
   ArrowDownWideNarrow,
   CheckCircle2,
   CloudUpload,
+  Download,
   FileText,
   Play,
   Search,
