@@ -516,7 +516,7 @@ export default function Dashboard() {
 
       <footer className="border-t border-border bg-card/50 py-4">
         <div className="mx-auto max-w-7xl px-6 text-center text-xs text-muted-foreground">
-          Tus datos nunca abandonan tu navegador
+          Centro de Cobranza · Archivos guardados de forma segura en la nube
         </div>
       </footer>
     </div>
