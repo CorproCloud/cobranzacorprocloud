@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowDownWideNarrow,
   CheckCircle2,
+  CloudUpload,
   FileText,
   Play,
   Search,
@@ -10,6 +12,7 @@ import {
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { UploadZone } from "@/components/UploadZone";
+import { CloudFiles } from "@/components/CloudFiles";
 import { HelpDialog } from "@/components/HelpDialog";
 import { TemplateEditor } from "@/components/TemplateEditor";
 import { ClientRow } from "@/components/ClientRow";
@@ -17,16 +20,31 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { parseCarteraPDF, type ClientCartera } from "@/lib/parsers/pdfParser";
 import { parseContactsExcel, type Contact } from "@/lib/parsers/excelParser";
+import {
+  type ArchivoNube,
+  downloadCloudFile,
+  listCloudFiles,
+  uploadCloudFile,
+} from "@/lib/cloudFiles";
 import {
   DEFAULT_EMAIL_TEMPLATE,
   DEFAULT_WHATSAPP_TEMPLATE,
   emailSubject,
   formatCurrency,
 } from "@/lib/messaging";
+
+type SortOrder = "deuda_desc" | "deuda_asc" | "dias_desc";
 
 export default function Dashboard() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -40,10 +58,29 @@ export default function Dashboard() {
   const [dateTo, setDateTo] = useState("");
   const [onlyOverdue, setOnlyOverdue] = useState(true);
   const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("deuda_desc");
 
   const [subject, setSubject] = useState(emailSubject(""));
   const [emailTpl, setEmailTpl] = useState(DEFAULT_EMAIL_TEMPLATE);
   const [waTpl, setWaTpl] = useState(DEFAULT_WHATSAPP_TEMPLATE);
+
+  const [cloudFiles, setCloudFiles] = useState<ArchivoNube[]>([]);
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [savingPdf, setSavingPdf] = useState(false);
+  const [savingXlsx, setSavingXlsx] = useState(false);
+
+  const refreshCloud = async () => {
+    try {
+      const list = await listCloudFiles();
+      setCloudFiles(list);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    refreshCloud();
+  }, []);
 
   const handlePdf = (f: File | null) => {
     setPdfFile(f);
@@ -53,6 +90,55 @@ export default function Dashboard() {
   const handleXlsx = (f: File | null) => {
     setXlsxFile(f);
     if (!f) setContacts([]);
+  };
+
+  const saveToCloud = async (tipo: "pdf" | "excel") => {
+    const file = tipo === "pdf" ? pdfFile : xlsxFile;
+    if (!file) {
+      toast.error("Primero carga un archivo");
+      return;
+    }
+    const setSaving = tipo === "pdf" ? setSavingPdf : setSavingXlsx;
+    setSaving(true);
+    try {
+      await uploadCloudFile(tipo, file);
+      toast.success("Archivo guardado en la nube");
+      await refreshCloud();
+    } catch (e) {
+      console.error(e);
+      toast.error("No se pudo guardar el archivo en la nube");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const useFromCloud = async (archivo: ArchivoNube) => {
+    setCloudBusy(true);
+    try {
+      const file = await downloadCloudFile(archivo);
+      if (archivo.tipo === "pdf") {
+        setPdfFile(file);
+        setLoadingPdf(true);
+        const parsed = await parseCarteraPDF(file);
+        setClients(parsed);
+        toast.success(`PDF procesado: ${parsed.length} clientes con cartera`);
+        setLoadingPdf(false);
+      } else {
+        setXlsxFile(file);
+        setLoadingXlsx(true);
+        const parsed = await parseContactsExcel(file);
+        setContacts(parsed);
+        toast.success(`Directorio cargado: ${parsed.length} contactos`);
+        setLoadingXlsx(false);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("No se pudo usar el archivo de la nube");
+      setLoadingPdf(false);
+      setLoadingXlsx(false);
+    } finally {
+      setCloudBusy(false);
+    }
   };
 
   const processing = loadingPdf || loadingXlsx;
@@ -124,8 +210,19 @@ export default function Dashboard() {
           row.contact?.razonSocial?.toLowerCase().includes(q) ||
           row.contact?.nombreComercial?.toLowerCase().includes(q)
         );
+      })
+      .sort((a, b) => {
+        const deudaA = a.filteredInvoices.reduce((s, i) => s + i.monto, 0);
+        const deudaB = b.filteredInvoices.reduce((s, i) => s + i.monto, 0);
+        if (sortOrder === "deuda_asc") return deudaA - deudaB;
+        if (sortOrder === "dias_desc") {
+          const diasA = Math.max(0, ...a.filteredInvoices.map((i) => i.diasVencido));
+          const diasB = Math.max(0, ...b.filteredInvoices.map((i) => i.diasVencido));
+          return diasB - diasA;
+        }
+        return deudaB - deudaA;
       });
-  }, [clients, contactsByCode, dateFrom, dateTo, onlyOverdue, search]);
+  }, [clients, contactsByCode, dateFrom, dateTo, onlyOverdue, search, sortOrder]);
 
   const stats = useMemo(() => {
     const visible = enriched.filter((e) => e.filteredInvoices.length > 0);
@@ -185,25 +282,60 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-7xl px-6 py-8">
         <section className="grid gap-4 md:grid-cols-2">
-          <UploadZone
-            accept="application/pdf,.pdf"
-            icon="pdf"
-            label="Cartera de clientes (PDF)"
-            hint="Reporte de cuentas por cobrar exportado del ERP"
-            file={pdfFile}
-            onFile={handlePdf}
-            loading={loadingPdf}
-          />
-          <UploadZone
-            accept=".xlsx,.xls,.csv"
-            icon="excel"
-            label="Directorio de contactos (Excel/CSV)"
-            hint="Códigos, correos y teléfonos de clientes"
-            file={xlsxFile}
-            onFile={handleXlsx}
-            loading={loadingXlsx}
-          />
+          <div className="space-y-2">
+            <UploadZone
+              accept="application/pdf,.pdf"
+              icon="pdf"
+              label="Cartera de clientes (PDF)"
+              hint="Reporte de cuentas por cobrar exportado del ERP"
+              file={pdfFile}
+              onFile={handlePdf}
+              loading={loadingPdf}
+            />
+            {pdfFile && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                disabled={savingPdf}
+                onClick={() => saveToCloud("pdf")}
+              >
+                <CloudUpload className="h-4 w-4" />
+                {savingPdf ? "Guardando…" : "Guardar en la nube"}
+              </Button>
+            )}
+          </div>
+          <div className="space-y-2">
+            <UploadZone
+              accept=".xlsx,.xls,.csv"
+              icon="excel"
+              label="Directorio de contactos (Excel/CSV)"
+              hint="Códigos, correos y teléfonos de clientes"
+              file={xlsxFile}
+              onFile={handleXlsx}
+              loading={loadingXlsx}
+            />
+            {xlsxFile && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                disabled={savingXlsx}
+                onClick={() => saveToCloud("excel")}
+              >
+                <CloudUpload className="h-4 w-4" />
+                {savingXlsx ? "Guardando…" : "Guardar en la nube"}
+              </Button>
+            )}
+          </div>
         </section>
+
+        <CloudFiles
+          files={cloudFiles}
+          busy={cloudBusy || processing}
+          onChanged={refreshCloud}
+          onUse={useFromCloud}
+        />
 
         <div className="mt-6 flex justify-center">
           <Button
@@ -304,6 +436,23 @@ export default function Dashboard() {
                     Solo facturas vencidas
                   </Label>
                 </div>
+                <div>
+                  <Label className="mb-1.5 block text-xs">Ordenar por</Label>
+                  <Select
+                    value={sortOrder}
+                    onValueChange={(v) => setSortOrder(v as SortOrder)}
+                  >
+                    <SelectTrigger className="w-[210px] gap-2">
+                      <ArrowDownWideNarrow className="h-4 w-4 text-muted-foreground" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="deuda_desc">Deuda: mayor a menor</SelectItem>
+                      <SelectItem value="deuda_asc">Deuda: menor a mayor</SelectItem>
+                      <SelectItem value="dias_desc">Días vencidos: más antiguos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 {(dateFrom || dateTo || search) && (
                   <Button
                     variant="ghost"
@@ -358,8 +507,8 @@ export default function Dashboard() {
               Carga tu cartera para comenzar
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Sube el PDF de cuentas por cobrar y, opcionalmente, el directorio de contactos. Tus
-              archivos se procesan localmente — nunca salen de tu navegador.
+              Sube el PDF de cuentas por cobrar y, opcionalmente, el directorio de contactos.
+              Puedes guardarlos en la nube para reutilizarlos cuando quieras.
             </p>
           </section>
         )}
@@ -367,7 +516,7 @@ export default function Dashboard() {
 
       <footer className="border-t border-border bg-card/50 py-4">
         <div className="mx-auto max-w-7xl px-6 text-center text-xs text-muted-foreground">
-          Tus datos nunca abandonan tu navegador
+          Centro de Cobranza · Archivos guardados de forma segura en la nube
         </div>
       </footer>
     </div>
