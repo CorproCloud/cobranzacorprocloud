@@ -210,8 +210,19 @@ export default function Dashboard() {
           row.contact?.razonSocial?.toLowerCase().includes(q) ||
           row.contact?.nombreComercial?.toLowerCase().includes(q)
         );
+      })
+      .sort((a, b) => {
+        const deudaA = a.filteredInvoices.reduce((s, i) => s + i.monto, 0);
+        const deudaB = b.filteredInvoices.reduce((s, i) => s + i.monto, 0);
+        if (sortOrder === "deuda_asc") return deudaA - deudaB;
+        if (sortOrder === "dias_desc") {
+          const diasA = Math.max(0, ...a.filteredInvoices.map((i) => i.diasVencido));
+          const diasB = Math.max(0, ...b.filteredInvoices.map((i) => i.diasVencido));
+          return diasB - diasA;
+        }
+        return deudaB - deudaA;
       });
-  }, [clients, contactsByCode, dateFrom, dateTo, onlyOverdue, search]);
+  }, [clients, contactsByCode, dateFrom, dateTo, onlyOverdue, search, sortOrder]);
 
   const stats = useMemo(() => {
     const visible = enriched.filter((e) => e.filteredInvoices.length > 0);
