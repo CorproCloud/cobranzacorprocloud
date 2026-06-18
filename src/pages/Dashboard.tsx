@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowDownWideNarrow,
   CheckCircle2,
+  CloudUpload,
   FileText,
   Play,
   Search,
@@ -10,6 +12,7 @@ import {
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { UploadZone } from "@/components/UploadZone";
+import { CloudFiles } from "@/components/CloudFiles";
 import { HelpDialog } from "@/components/HelpDialog";
 import { TemplateEditor } from "@/components/TemplateEditor";
 import { ClientRow } from "@/components/ClientRow";
@@ -17,16 +20,31 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { parseCarteraPDF, type ClientCartera } from "@/lib/parsers/pdfParser";
 import { parseContactsExcel, type Contact } from "@/lib/parsers/excelParser";
+import {
+  type ArchivoNube,
+  downloadCloudFile,
+  listCloudFiles,
+  uploadCloudFile,
+} from "@/lib/cloudFiles";
 import {
   DEFAULT_EMAIL_TEMPLATE,
   DEFAULT_WHATSAPP_TEMPLATE,
   emailSubject,
   formatCurrency,
 } from "@/lib/messaging";
+
+type SortOrder = "deuda_desc" | "deuda_asc" | "dias_desc";
 
 export default function Dashboard() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
