@@ -58,10 +58,29 @@ export default function Dashboard() {
   const [dateTo, setDateTo] = useState("");
   const [onlyOverdue, setOnlyOverdue] = useState(true);
   const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("deuda_desc");
 
   const [subject, setSubject] = useState(emailSubject(""));
   const [emailTpl, setEmailTpl] = useState(DEFAULT_EMAIL_TEMPLATE);
   const [waTpl, setWaTpl] = useState(DEFAULT_WHATSAPP_TEMPLATE);
+
+  const [cloudFiles, setCloudFiles] = useState<ArchivoNube[]>([]);
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [savingPdf, setSavingPdf] = useState(false);
+  const [savingXlsx, setSavingXlsx] = useState(false);
+
+  const refreshCloud = async () => {
+    try {
+      const list = await listCloudFiles();
+      setCloudFiles(list);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    refreshCloud();
+  }, []);
 
   const handlePdf = (f: File | null) => {
     setPdfFile(f);
@@ -71,6 +90,55 @@ export default function Dashboard() {
   const handleXlsx = (f: File | null) => {
     setXlsxFile(f);
     if (!f) setContacts([]);
+  };
+
+  const saveToCloud = async (tipo: "pdf" | "excel") => {
+    const file = tipo === "pdf" ? pdfFile : xlsxFile;
+    if (!file) {
+      toast.error("Primero carga un archivo");
+      return;
+    }
+    const setSaving = tipo === "pdf" ? setSavingPdf : setSavingXlsx;
+    setSaving(true);
+    try {
+      await uploadCloudFile(tipo, file);
+      toast.success("Archivo guardado en la nube");
+      await refreshCloud();
+    } catch (e) {
+      console.error(e);
+      toast.error("No se pudo guardar el archivo en la nube");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const useFromCloud = async (archivo: ArchivoNube) => {
+    setCloudBusy(true);
+    try {
+      const file = await downloadCloudFile(archivo);
+      if (archivo.tipo === "pdf") {
+        setPdfFile(file);
+        setLoadingPdf(true);
+        const parsed = await parseCarteraPDF(file);
+        setClients(parsed);
+        toast.success(`PDF procesado: ${parsed.length} clientes con cartera`);
+        setLoadingPdf(false);
+      } else {
+        setXlsxFile(file);
+        setLoadingXlsx(true);
+        const parsed = await parseContactsExcel(file);
+        setContacts(parsed);
+        toast.success(`Directorio cargado: ${parsed.length} contactos`);
+        setLoadingXlsx(false);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("No se pudo usar el archivo de la nube");
+      setLoadingPdf(false);
+      setLoadingXlsx(false);
+    } finally {
+      setCloudBusy(false);
+    }
   };
 
   const processing = loadingPdf || loadingXlsx;
