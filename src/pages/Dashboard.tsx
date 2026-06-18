@@ -243,6 +243,19 @@ export default function Dashboard() {
     };
   }, [enriched]);
 
+  const handleDownloadPdf = async () => {
+    setDownloadingPdf(true);
+    try {
+      await generateClientsPdf(enriched);
+      toast.success("PDF generado");
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "No se pudo generar el PDF");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   const ready = clients.length > 0;
 
   return (
