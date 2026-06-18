@@ -38,6 +38,7 @@ import {
   listCloudFiles,
   uploadCloudFile,
 } from "@/lib/cloudFiles";
+import { generateClientsPdf } from "@/lib/reportPdf";
 import {
   DEFAULT_EMAIL_TEMPLATE,
   DEFAULT_WHATSAPP_TEMPLATE,
