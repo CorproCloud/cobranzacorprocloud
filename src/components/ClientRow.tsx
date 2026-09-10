@@ -52,6 +52,7 @@ export function ClientRow({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [emailPickerOpen, setEmailPickerOpen] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
 
   const filteredTotal = useMemo(
     () => filteredInvoices.reduce((s, i) => s + i.monto, 0),
@@ -77,6 +78,28 @@ export function ClientRow({
     };
   }, [contact, filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
   const emailLink = emailLinks?.mailto ?? null;
+
+  // Enlaces sin destinatario: el usuario escribe el correo manualmente al abrirse la ventana
+  const manualLinks = useMemo(() => {
+    if (!filteredInvoices.length) return null;
+    const body = buildMessage(
+      emailTemplate,
+      { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
+      "email",
+    );
+    return {
+      gmail: buildGmailLink("", [], subject, body),
+      outlook: buildOutlookLink("", [], subject, body),
+      mailto: buildMailtoLink("", [], subject, body),
+    };
+  }, [filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
+
+  const activeLinks = manualMode ? manualLinks : emailLinks;
+
+  const openPicker = (manual: boolean) => {
+    setManualMode(manual);
+    setEmailPickerOpen(true);
+  };
 
   const waLink = useMemo(() => {
     if (!contact?.telefono || !filteredInvoices.length) return null;
@@ -169,7 +192,7 @@ export function ClientRow({
             className="gap-1.5"
             disabled={!waLink && !emailLink}
             onClick={() => {
-              if (emailLink) setEmailPickerOpen(true);
+              if (emailLink) openPicker(false);
               else if (waLink) window.open(waLink, "_blank", "noopener,noreferrer");
             }}
             title={
@@ -237,9 +260,19 @@ export function ClientRow({
                 variant="outline"
                 className="gap-1.5"
                 disabled={!emailLink}
-                onClick={() => setEmailPickerOpen(true)}
+                onClick={() => openPicker(false)}
               >
                 <Mail className="h-3.5 w-3.5" /> Enviar correo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                disabled={!manualLinks}
+                onClick={() => openPicker(true)}
+                title="Abre el correo sin destinatario para escribirlo manualmente"
+              >
+                <AtSign className="h-3.5 w-3.5" /> Enviar sin correo
               </Button>
               <Button
                 size="sm"
@@ -312,31 +345,33 @@ export function ClientRow({
           <DialogHeader>
             <DialogTitle>Enviar cobro por correo</DialogTitle>
             <DialogDescription>
-              Elige tu cliente de correo. Se abrirá con el mensaje listo.
+              {manualMode
+                ? "Se abrirá sin destinatario para que escribas el correo manualmente."
+                : "Elige tu cliente de correo. Se abrirá con el mensaje listo."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
             <Button
               variant="outline"
               className="justify-start gap-2"
-              disabled={!emailLinks}
-              onClick={() => openEmailLink(emailLinks?.gmail)}
+              disabled={!activeLinks}
+              onClick={() => openEmailLink(activeLinks?.gmail)}
             >
               <Mail className="h-4 w-4 text-gmail" /> Gmail
             </Button>
             <Button
               variant="outline"
               className="justify-start gap-2"
-              disabled={!emailLinks}
-              onClick={() => openEmailLink(emailLinks?.outlook)}
+              disabled={!activeLinks}
+              onClick={() => openEmailLink(activeLinks?.outlook)}
             >
               <Mail className="h-4 w-4 text-outlook" /> Outlook
             </Button>
             <Button
               variant="ghost"
               className="justify-start gap-2"
-              disabled={!emailLinks}
-              onClick={() => openEmailLink(emailLinks?.mailto)}
+              disabled={!activeLinks}
+              onClick={() => openEmailLink(activeLinks?.mailto)}
             >
               <Mail className="h-4 w-4" /> Otro (cliente predeterminado)
             </Button>
