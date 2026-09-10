@@ -79,6 +79,28 @@ export function ClientRow({
   }, [contact, filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
   const emailLink = emailLinks?.mailto ?? null;
 
+  // Enlaces sin destinatario: el usuario escribe el correo manualmente al abrirse la ventana
+  const manualLinks = useMemo(() => {
+    if (!filteredInvoices.length) return null;
+    const body = buildMessage(
+      emailTemplate,
+      { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
+      "email",
+    );
+    return {
+      gmail: buildGmailLink("", [], subject, body),
+      outlook: buildOutlookLink("", [], subject, body),
+      mailto: buildMailtoLink("", [], subject, body),
+    };
+  }, [filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
+
+  const activeLinks = manualMode ? manualLinks : emailLinks;
+
+  const openPicker = (manual: boolean) => {
+    setManualMode(manual);
+    setEmailPickerOpen(true);
+  };
+
   const waLink = useMemo(() => {
     if (!contact?.telefono || !filteredInvoices.length) return null;
     const msg = buildMessage(
