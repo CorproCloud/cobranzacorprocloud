@@ -52,6 +52,7 @@ export function ClientRow({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [emailPickerOpen, setEmailPickerOpen] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
 
   const filteredTotal = useMemo(
     () => filteredInvoices.reduce((s, i) => s + i.monto, 0),
