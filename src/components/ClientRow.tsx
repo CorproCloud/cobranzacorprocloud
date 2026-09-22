@@ -140,6 +140,37 @@ export function ClientRow({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const canSendDirect = !!contact?.correo && filteredInvoices.length > 0;
+
+  const handleDirectSend = async () => {
+    if (!contact?.correo) return;
+    setSending(true);
+    try {
+      await sendCobranzaEmail({
+        cliente_id: client.id,
+        cliente_nombre: principal,
+        email: contact.correo,
+        cc: contact.correosSecundarios ?? [],
+        asunto: subject,
+        cuerpo: buildMessage(
+          emailTemplate,
+          { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
+          "email",
+        ),
+        facturas: filteredInvoices,
+        total: filteredTotal,
+      });
+      toast.success(`Correo enviado a ${contact.correo}`);
+      onSent?.();
+    } catch (e) {
+      console.error(e);
+      toast.error("No se pudo enviar el correo");
+    } finally {
+      setSending(false);
+      setEmailPickerOpen(false);
+    }
+  };
+
   return (
     <article
       className={cn(
