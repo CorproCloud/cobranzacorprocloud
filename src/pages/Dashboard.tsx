@@ -72,6 +72,8 @@ export default function Dashboard() {
   const [savingPdf, setSavingPdf] = useState(false);
   const [savingXlsx, setSavingXlsx] = useState(false);
 
+  const [logs, setLogs] = useState<Map<string, CobranzaLog>>(new Map());
+
   const refreshCloud = async () => {
     try {
       const list = await listCloudFiles();
@@ -81,8 +83,19 @@ export default function Dashboard() {
     }
   };
 
+  const refreshLogs = async () => {
+    try {
+      setLogs(await fetchLatestLogs());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     refreshCloud();
+    refreshLogs();
+    const id = setInterval(refreshLogs, 30000);
+    return () => clearInterval(id);
   }, []);
 
   const handlePdf = (f: File | null) => {
