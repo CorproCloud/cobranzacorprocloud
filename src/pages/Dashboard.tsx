@@ -39,6 +39,7 @@ import {
   uploadCloudFile,
 } from "@/lib/cloudFiles";
 import { generateClientsPdf } from "@/lib/reportPdf";
+import { type CobranzaLog, fetchLatestLogs } from "@/lib/cobranzaLogs";
 import {
   DEFAULT_EMAIL_TEMPLATE,
   DEFAULT_WHATSAPP_TEMPLATE,
