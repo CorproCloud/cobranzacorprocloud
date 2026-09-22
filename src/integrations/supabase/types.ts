@@ -41,6 +41,54 @@ export type Database = {
         }
         Relationships: []
       }
+      cobranza_logs: {
+        Row: {
+          asunto: string | null
+          cliente_id: string
+          cliente_nombre: string | null
+          created_at: string
+          email_cliente: string
+          factura_id: string | null
+          fecha_envio: string
+          fecha_lectura: string | null
+          id: string
+          leido: boolean
+          pixel_id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          asunto?: string | null
+          cliente_id: string
+          cliente_nombre?: string | null
+          created_at?: string
+          email_cliente: string
+          factura_id?: string | null
+          fecha_envio?: string
+          fecha_lectura?: string | null
+          id?: string
+          leido?: boolean
+          pixel_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          asunto?: string | null
+          cliente_id?: string
+          cliente_nombre?: string | null
+          created_at?: string
+          email_cliente?: string
+          factura_id?: string | null
+          fecha_envio?: string
+          fecha_lectura?: string | null
+          id?: string
+          leido?: boolean
+          pixel_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
