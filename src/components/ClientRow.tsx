@@ -3,15 +3,18 @@ import {
   ChevronDown,
   ChevronUp,
   Mail,
+  MailCheck,
   MessageCircle,
   AlertCircle,
   FileText,
   Phone,
   AtSign,
+  Send,
   Users,
   CalendarClock,
   BadgeCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { ClientCartera, Invoice } from "@/lib/parsers/pdfParser";
 import type { Contact } from "@/lib/parsers/excelParser";
 import {
@@ -23,6 +26,11 @@ import {
   emailSubject as defaultSubject,
   formatCurrency,
 } from "@/lib/messaging";
+import {
+  type CobranzaLog,
+  formatDateTime,
+  sendCobranzaEmail,
+} from "@/lib/cobranzaLogs";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,6 +48,8 @@ interface Props {
   emailTemplate: string;
   whatsappTemplate: string;
   subject: string;
+  log?: CobranzaLog | null;
+  onSent?: () => void;
 }
 
 export function ClientRow({
