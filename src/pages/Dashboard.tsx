@@ -516,6 +516,8 @@ export default function Dashboard() {
                       emailTemplate={emailTpl}
                       whatsappTemplate={waTpl}
                       subject={subject}
+                      log={logs.get(row.client.id) ?? null}
+                      onSent={refreshLogs}
                     />
                   ))}
                 </div>
