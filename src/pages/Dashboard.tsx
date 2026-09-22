@@ -39,6 +39,7 @@ import {
   uploadCloudFile,
 } from "@/lib/cloudFiles";
 import { generateClientsPdf } from "@/lib/reportPdf";
+import { type CobranzaLog, fetchLatestLogs } from "@/lib/cobranzaLogs";
 import {
   DEFAULT_EMAIL_TEMPLATE,
   DEFAULT_WHATSAPP_TEMPLATE,
@@ -72,6 +73,8 @@ export default function Dashboard() {
   const [savingPdf, setSavingPdf] = useState(false);
   const [savingXlsx, setSavingXlsx] = useState(false);
 
+  const [logs, setLogs] = useState<Map<string, CobranzaLog>>(new Map());
+
   const refreshCloud = async () => {
     try {
       const list = await listCloudFiles();
@@ -81,8 +84,19 @@ export default function Dashboard() {
     }
   };
 
+  const refreshLogs = async () => {
+    try {
+      setLogs(await fetchLatestLogs());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     refreshCloud();
+    refreshLogs();
+    const id = setInterval(refreshLogs, 30000);
+    return () => clearInterval(id);
   }, []);
 
   const handlePdf = (f: File | null) => {
@@ -516,6 +530,8 @@ export default function Dashboard() {
                       emailTemplate={emailTpl}
                       whatsappTemplate={waTpl}
                       subject={subject}
+                      log={logs.get(row.client.id) ?? null}
+                      onSent={refreshLogs}
                     />
                   ))}
                 </div>

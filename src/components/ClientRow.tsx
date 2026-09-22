@@ -3,15 +3,18 @@ import {
   ChevronDown,
   ChevronUp,
   Mail,
+  MailCheck,
   MessageCircle,
   AlertCircle,
   FileText,
   Phone,
   AtSign,
+  Send,
   Users,
   CalendarClock,
   BadgeCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { ClientCartera, Invoice } from "@/lib/parsers/pdfParser";
 import type { Contact } from "@/lib/parsers/excelParser";
 import {
@@ -23,6 +26,11 @@ import {
   emailSubject as defaultSubject,
   formatCurrency,
 } from "@/lib/messaging";
+import {
+  type CobranzaLog,
+  formatDateTime,
+  sendCobranzaEmail,
+} from "@/lib/cobranzaLogs";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,6 +48,8 @@ interface Props {
   emailTemplate: string;
   whatsappTemplate: string;
   subject: string;
+  log?: CobranzaLog | null;
+  onSent?: () => void;
 }
 
 export function ClientRow({
@@ -49,10 +59,13 @@ export function ClientRow({
   emailTemplate,
   whatsappTemplate,
   subject,
+  log,
+  onSent,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [emailPickerOpen, setEmailPickerOpen] = useState(false);
   const [manualMode, setManualMode] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const filteredTotal = useMemo(
     () => filteredInvoices.reduce((s, i) => s + i.monto, 0),
@@ -127,6 +140,37 @@ export function ClientRow({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const canSendDirect = !!contact?.correo && filteredInvoices.length > 0;
+
+  const handleDirectSend = async () => {
+    if (!contact?.correo) return;
+    setSending(true);
+    try {
+      await sendCobranzaEmail({
+        cliente_id: client.id,
+        cliente_nombre: principal,
+        email: contact.correo,
+        cc: contact.correosSecundarios ?? [],
+        asunto: subject,
+        cuerpo: buildMessage(
+          emailTemplate,
+          { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
+          "email",
+        ),
+        facturas: filteredInvoices,
+        total: filteredTotal,
+      });
+      toast.success(`Correo enviado a ${contact.correo}`);
+      onSent?.();
+    } catch (e) {
+      console.error(e);
+      toast.error("No se pudo enviar el correo");
+    } finally {
+      setSending(false);
+      setEmailPickerOpen(false);
+    }
+  };
+
   return (
     <article
       className={cn(
@@ -168,6 +212,31 @@ export function ClientRow({
           )}
         </div>
 
+        {/* Último envío + estado de lectura */}
+        <div className="hidden w-[200px] shrink-0 lg:block">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Último envío
+          </div>
+          <div className="truncate text-xs text-foreground">
+            {log ? formatDateTime(log.fecha_envio) : "No enviado"}
+          </div>
+          <div className="mt-1">
+            {log ? (
+              log.leido ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">
+                  <MailCheck className="h-3 w-3" /> Leído {formatDateTime(log.fecha_lectura)}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  <Mail className="h-3 w-3" /> Enviado
+                </span>
+              )
+            ) : (
+              <span className="text-[11px] text-muted-foreground">Sin seguimiento</span>
+            )}
+          </div>
+        </div>
+
         {/* Total + invoice count */}
         <div className="hidden text-right sm:block">
           <div className="text-base font-bold tabular-nums text-destructive">
@@ -190,16 +259,35 @@ export function ClientRow({
             size="sm"
             variant="success"
             className="gap-1.5"
+            disabled={!canSendDirect || sending}
+            onClick={handleDirectSend}
+            title={
+              !contact?.correo
+                ? "Sin correo de contacto"
+                : noFiltered
+                  ? "Sin facturas filtradas"
+                  : "Enviar cobro por correo"
+            }
+          >
+            {sending ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <Send className="h-3.5 w-3.5" />
+            )}
+            {sending ? "Enviando…" : "Cobrar"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
             disabled={!waLink && !emailLink}
             onClick={() => {
               if (emailLink) openPicker(false);
               else if (waLink) window.open(waLink, "_blank", "noopener,noreferrer");
             }}
-            title={
-              !contact ? "Sin contacto" : noFiltered ? "Sin facturas filtradas" : "Enviar cobro"
-            }
+            title="Abrir en Gmail, Outlook o WhatsApp"
           >
-            <Mail className="h-3.5 w-3.5" /> Cobrar
+            <Mail className="h-3.5 w-3.5" />
           </Button>
         </div>
       </button>
