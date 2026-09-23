@@ -4,7 +4,6 @@ import {
   ChevronUp,
   Mail,
   MailCheck,
-  MessageCircle,
   AlertCircle,
   FileText,
   Phone,
@@ -13,25 +12,25 @@ import {
   Users,
   CalendarClock,
   BadgeCheck,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ClientCartera, Invoice } from "@/lib/parsers/pdfParser";
 import type { Contact } from "@/lib/parsers/excelParser";
 import {
   buildGmailLink,
-  buildMailtoLink,
   buildMessage,
-  buildOutlookLink,
-  buildWhatsAppLink,
   emailSubject as defaultSubject,
   formatCurrency,
 } from "@/lib/messaging";
+import { buildClientImage, downloadClientImage } from "@/lib/clientImage";
 import {
   type CobranzaLog,
   formatDateTime,
   sendCobranzaEmail,
 } from "@/lib/cobranzaLogs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -57,14 +56,14 @@ export function ClientRow({
   contact,
   filteredInvoices,
   emailTemplate,
-  whatsappTemplate,
   subject,
   log,
   onSent,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [emailPickerOpen, setEmailPickerOpen] = useState(false);
-  const [manualMode, setManualMode] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualEmails, setManualEmails] = useState("");
   const [sending, setSending] = useState(false);
 
   const filteredTotal = useMemo(
@@ -76,98 +75,94 @@ export function ClientRow({
   const principal = contact?.razonSocial || client.nombre || `Cliente ${client.id}`;
   const secundario = contact?.nombreComercial || "";
 
-  const emailLinks = useMemo(() => {
+  const cuerpo = useMemo(
+    () =>
+      buildMessage(
+        emailTemplate,
+        { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
+        "email",
+      ),
+    [emailTemplate, principal, filteredInvoices, filteredTotal],
+  );
+
+  const gmailLink = useMemo(() => {
     if (!contact?.correo || !filteredInvoices.length) return null;
-    const body = buildMessage(
-      emailTemplate,
-      { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
-      "email",
-    );
-    const cc = contact.correosSecundarios;
-    return {
-      gmail: buildGmailLink(contact.correo, cc, subject, body),
-      outlook: buildOutlookLink(contact.correo, cc, subject, body),
-      mailto: buildMailtoLink(contact.correo, cc, subject, body),
-    };
-  }, [contact, filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
-  const emailLink = emailLinks?.mailto ?? null;
-
-  // Enlaces sin destinatario: el usuario escribe el correo manualmente al abrirse la ventana
-  const manualLinks = useMemo(() => {
-    if (!filteredInvoices.length) return null;
-    const body = buildMessage(
-      emailTemplate,
-      { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
-      "email",
-    );
-    return {
-      gmail: buildGmailLink("", [], subject, body),
-      outlook: buildOutlookLink("", [], subject, body),
-      mailto: buildMailtoLink("", [], subject, body),
-    };
-  }, [filteredInvoices, emailTemplate, subject, principal, filteredTotal]);
-
-  const activeLinks = manualMode ? manualLinks : emailLinks;
-
-  const openPicker = (manual: boolean) => {
-    setManualMode(manual);
-    setEmailPickerOpen(true);
-  };
-
-  const waLink = useMemo(() => {
-    if (!contact?.telefono || !filteredInvoices.length) return null;
-    const msg = buildMessage(
-      whatsappTemplate,
-      { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
-      "whatsapp",
-    );
-    return buildWhatsAppLink(contact.telefono, msg);
-  }, [contact, filteredInvoices, whatsappTemplate, principal, filteredTotal]);
+    return buildGmailLink(contact.correo, contact.correosSecundarios, subject, cuerpo);
+  }, [contact, filteredInvoices, subject, cuerpo]);
 
   const hasContact = !!contact;
   const noFiltered = filteredInvoices.length === 0;
-  const hasAnyAction = !!emailLink || !!waLink;
-
-  const openEmailLink = (url?: string) => {
-    if (!url) return;
-    setEmailPickerOpen(false);
-
-    if (url.startsWith("mailto:")) {
-      window.open(url, "_blank");
-      return;
-    }
-
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
 
   const canSendDirect = !!contact?.correo && filteredInvoices.length > 0;
 
-  const handleDirectSend = async () => {
-    if (!contact?.correo) return;
+  const sendTo = async (email: string, cc: string[]) => {
     setSending(true);
     try {
       await sendCobranzaEmail({
         cliente_id: client.id,
         cliente_nombre: principal,
-        email: contact.correo,
-        cc: contact.correosSecundarios ?? [],
+        email,
+        cc,
         asunto: subject,
-        cuerpo: buildMessage(
-          emailTemplate,
-          { nombre: principal, invoices: filteredInvoices, total: filteredTotal },
-          "email",
-        ),
+        cuerpo,
         facturas: filteredInvoices,
         total: filteredTotal,
       });
-      toast.success(`Correo enviado a ${contact.correo}`);
+      toast.success(`Correo enviado a ${email}`);
       onSent?.();
+      return true;
     } catch (e) {
       console.error(e);
       toast.error("No se pudo enviar el correo");
+      return false;
     } finally {
       setSending(false);
-      setEmailPickerOpen(false);
+    }
+  };
+
+  const handleDirectSend = async () => {
+    if (!contact?.correo) return;
+    await sendTo(contact.correo, contact.correosSecundarios ?? []);
+    setEmailPickerOpen(false);
+  };
+
+  const handleManualSend = async () => {
+    const lista = manualEmails
+      .split(/[;,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const invalido = lista.find((e) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    if (!lista.length) {
+      toast.error("Escribe al menos un correo");
+      return;
+    }
+    if (invalido) {
+      toast.error(`Correo no válido: ${invalido}`);
+      return;
+    }
+    const ok = await sendTo(lista[0], lista.slice(1));
+    if (ok) {
+      setManualOpen(false);
+      setManualEmails("");
+    }
+  };
+
+  const handleDownloadImage = () => {
+    try {
+      const dataUrl = buildClientImage({
+        nombre: principal,
+        clienteId: client.id,
+        invoices: filteredInvoices,
+        total: filteredTotal,
+      });
+      downloadClientImage(
+        `Adeudo-${client.id}-${principal.replace(/[^\w\s-]/g, "").trim().slice(0, 30)}.png`,
+        dataUrl,
+      );
+      toast.success("Imagen descargada, lista para enviar por WhatsApp");
+    } catch (e) {
+      console.error(e);
+      toast.error("No se pudo generar la imagen");
     }
   };
 
@@ -280,12 +275,9 @@ export function ClientRow({
             size="sm"
             variant="outline"
             className="gap-1.5"
-            disabled={!waLink && !emailLink}
-            onClick={() => {
-              if (emailLink) openPicker(false);
-              else if (waLink) window.open(waLink, "_blank", "noopener,noreferrer");
-            }}
-            title="Abrir en Gmail, Outlook o WhatsApp"
+            disabled={!gmailLink}
+            onClick={() => setEmailPickerOpen(true)}
+            title="Abrir en Gmail"
           >
             <Mail className="h-3.5 w-3.5" />
           </Button>
@@ -347,8 +339,8 @@ export function ClientRow({
                 size="sm"
                 variant="outline"
                 className="gap-1.5"
-                disabled={!emailLink}
-                onClick={() => openPicker(false)}
+                disabled={!gmailLink}
+                onClick={() => setEmailPickerOpen(true)}
               >
                 <Mail className="h-3.5 w-3.5" /> Enviar correo
               </Button>
@@ -356,9 +348,9 @@ export function ClientRow({
                 size="sm"
                 variant="outline"
                 className="gap-1.5"
-                disabled={!manualLinks}
-                onClick={() => openPicker(true)}
-                title="Abre el correo sin destinatario para escribirlo manualmente"
+                disabled={noFiltered || sending}
+                onClick={() => setManualOpen(true)}
+                title="Escribe uno o varios correos separados por ;"
               >
                 <AtSign className="h-3.5 w-3.5" /> Enviar sin correo
               </Button>
@@ -366,18 +358,11 @@ export function ClientRow({
                 size="sm"
                 variant="outline"
                 className="gap-1.5 border-success/30 text-success hover:bg-success/10 hover:text-success"
-                disabled={!waLink}
-                asChild={!!waLink}
+                disabled={noFiltered}
+                onClick={handleDownloadImage}
+                title="Descargar imagen PNG lista para enviar por WhatsApp"
               >
-                {waLink ? (
-                  <a href={waLink} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                  </a>
-                ) : (
-                  <span>
-                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                  </span>
-                )}
+                <Download className="h-3.5 w-3.5" /> Descargar
               </Button>
             </div>
           </div>
@@ -428,40 +413,58 @@ export function ClientRow({
         </div>
       )}
 
+      {/* Gmail */}
       <Dialog open={emailPickerOpen} onOpenChange={setEmailPickerOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Enviar cobro por correo</DialogTitle>
             <DialogDescription>
-              {manualMode
-                ? "Se abrirá sin destinatario para que escribas el correo manualmente."
-                : "Elige tu cliente de correo. Se abrirá con el mensaje listo."}
+              Se abrirá Gmail con el mensaje listo para enviar.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
             <Button
               variant="outline"
               className="justify-start gap-2"
-              disabled={!activeLinks}
-              onClick={() => openEmailLink(activeLinks?.gmail)}
+              disabled={!gmailLink}
+              onClick={() => {
+                if (gmailLink) window.open(gmailLink, "_blank", "noopener,noreferrer");
+                setEmailPickerOpen(false);
+              }}
             >
               <Mail className="h-4 w-4 text-gmail" /> Gmail
             </Button>
-            <Button
-              variant="outline"
-              className="justify-start gap-2"
-              disabled={!activeLinks}
-              onClick={() => openEmailLink(activeLinks?.outlook)}
-            >
-              <Mail className="h-4 w-4 text-outlook" /> Outlook
-            </Button>
-            <Button
-              variant="ghost"
-              className="justify-start gap-2"
-              disabled={!activeLinks}
-              onClick={() => openEmailLink(activeLinks?.mailto)}
-            >
-              <Mail className="h-4 w-4" /> Otro (cliente predeterminado)
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Envío manual con seguimiento */}
+      <Dialog open={manualOpen} onOpenChange={setManualOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Enviar a otros correos</DialogTitle>
+            <DialogDescription>
+              Escribe uno o varios correos separados por punto y coma (;). El envío se registra con
+              seguimiento de enviado y leído.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Input
+              autoFocus
+              placeholder="correo1@dominio.com; correo2@dominio.com"
+              value={manualEmails}
+              onChange={(e) => setManualEmails(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !sending) handleManualSend();
+              }}
+            />
+            <Button variant="success" disabled={sending} onClick={handleManualSend} className="gap-2">
+              {sending ? (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
+              {sending ? "Enviando…" : "Enviar"}
             </Button>
           </div>
         </DialogContent>
