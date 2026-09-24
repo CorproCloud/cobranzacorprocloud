@@ -39,6 +39,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { ClientNotes } from "@/components/ClientNotes";
 
 interface Props {
   client: ClientCartera;
@@ -366,6 +367,8 @@ export function ClientRow({
               </Button>
             </div>
           </div>
+
+          <ClientNotes clienteId={client.id} />
 
           {/* Invoices table */}
           <div className="overflow-x-auto">
