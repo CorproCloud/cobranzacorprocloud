@@ -41,6 +41,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cliente_observaciones: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cobranza_logs: {
         Row: {
           asunto: string | null
