@@ -6,8 +6,11 @@ export interface Contact {
   nombreComercial: string;
   correo: string;
   correosSecundarios: string[];
+  correosCompras: string[];
+  correosPagos: string[];
   telefono: string; // for WhatsApp
   diasVencimiento?: number;
+  agente: string;
   status: string;
   observaciones: string;
 }
@@ -30,6 +33,17 @@ function pick(row: Record<string, unknown>, ...keys: string[]): string {
   return "";
 }
 
+function parseEmails(value: string): string[] {
+  return Array.from(
+    new Set(
+      value
+        .split(/[;,\n]+/)
+        .map((email) => email.trim())
+        .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)),
+    ),
+  );
+}
+
 export async function parseContactsExcel(file: File): Promise<Contact[]> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array" });
@@ -40,20 +54,29 @@ export async function parseContactsExcel(file: File): Promise<Contact[]> {
     .map((r): Contact | null => {
       const codigo = pick(r, "CODIGO", "ID", "ID CLIENTE", "CLIENTE");
       if (!codigo) return null;
-      const correo = pick(r, "CORREO", "EMAIL");
-      const sec = pick(r, "CORREOS SECUNDARIOS", "CORREOS_SECUNDARIOS", "CC");
+      const correosCompras = parseEmails(pick(r, "CORREOS COMPRAS", "CORREOS_COMPRAS"));
+      const correosPagos = parseEmails(pick(r, "CORREOS PAGOS", "CORREOS_PAGOS"));
+      const correosAnteriores = parseEmails(
+        [
+          pick(r, "CORREO", "EMAIL"),
+          pick(r, "CORREOS SECUNDARIOS", "CORREOS_SECUNDARIOS", "CC"),
+        ].join(";"),
+      );
+      const todosLosCorreos = Array.from(
+        new Set([...correosCompras, ...correosPagos, ...correosAnteriores]),
+      );
       const dias = pick(r, "DIAS DE VENCIMIENTO", "DIAS_VENCIMIENTO", "DIAS");
       return {
         codigo: codigo.toString().replace(/\.0$/, ""),
         razonSocial: pick(r, "RAZON SOCIAL", "RAZON_SOCIAL"),
         nombreComercial: pick(r, "NOMBRE COMERCIAL", "NOMBRE_COMERCIAL", "NOMBRE"),
-        correo,
-        correosSecundarios: sec
-          .split(/[;,\n]+/)
-          .map((s) => s.trim())
-          .filter((s) => s && s.includes("@")),
+        correo: todosLosCorreos[0] ?? "",
+        correosSecundarios: todosLosCorreos.slice(1),
+        correosCompras,
+        correosPagos,
         telefono: pick(r, "NUMERO TELEFONICO", "TELEFONO", "WHATSAPP", "CELULAR", "TEL"),
         diasVencimiento: dias ? parseInt(dias, 10) || undefined : undefined,
+        agente: pick(r, "AGENTE", "VENDEDOR", "EJECUTIVO"),
         status: pick(r, "STATUS", "ESTADO") || "ACTIVO",
         observaciones: pick(r, "OBSERVACIONES", "NOTAS"),
       };

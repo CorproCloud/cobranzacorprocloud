@@ -13,6 +13,7 @@ import {
   CalendarClock,
   BadgeCheck,
   Download,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ClientCartera, Invoice } from "@/lib/parsers/pdfParser";
@@ -308,14 +309,14 @@ export function ClientRow({
             />
             <InfoField
               icon={<AtSign className="h-3.5 w-3.5" />}
-              label="Correo"
-              value={contact?.correo || "—"}
+              label="Correos de compras"
+              value={contact?.correosCompras.join("; ") || contact?.correo || "—"}
               mono
             />
             <InfoField
               icon={<Mail className="h-3.5 w-3.5" />}
-              label="Correos CC"
-              value={contact?.correosSecundarios.join("; ") || "—"}
+              label="Correos de pagos"
+              value={contact?.correosPagos.join("; ") || "—"}
               mono
             />
             <InfoField
@@ -326,8 +327,13 @@ export function ClientRow({
             />
             <InfoField
               icon={<CalendarClock className="h-3.5 w-3.5" />}
-              label="Días configurados"
+              label="Días de crédito"
               value={(contact?.diasVencimiento ?? client.diasConfig)?.toString() || "—"}
+            />
+            <InfoField
+              icon={<BriefcaseBusiness className="h-3.5 w-3.5" />}
+              label="Agente"
+              value={contact?.agente || "—"}
             />
             <InfoField
               icon={<BadgeCheck className="h-3.5 w-3.5" />}
