@@ -34,14 +34,19 @@ function pick(row: Record<string, unknown>, ...keys: string[]): string {
 }
 
 function parseEmails(value: string): string[] {
-  return Array.from(
-    new Set(
-      value
-        .split(/[;,\n]+/)
-        .map((email) => email.trim())
-        .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)),
-    ),
-  );
+  const unique = new Map<string, string>();
+  value
+    .split(/[;,\n]+/)
+    .map((email) => email.trim())
+    .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    .forEach((email) => unique.set(email.toLowerCase(), email));
+  return Array.from(unique.values());
+}
+
+function mergeEmails(...groups: string[][]): string[] {
+  const unique = new Map<string, string>();
+  groups.flat().forEach((email) => unique.set(email.toLowerCase(), email));
+  return Array.from(unique.values());
 }
 
 export async function parseContactsExcel(file: File): Promise<Contact[]> {
@@ -62,9 +67,7 @@ export async function parseContactsExcel(file: File): Promise<Contact[]> {
           pick(r, "CORREOS SECUNDARIOS", "CORREOS_SECUNDARIOS", "CC"),
         ].join(";"),
       );
-      const todosLosCorreos = Array.from(
-        new Set([...correosCompras, ...correosPagos, ...correosAnteriores]),
-      );
+      const todosLosCorreos = mergeEmails(correosCompras, correosPagos, correosAnteriores);
       const dias = pick(r, "DIAS DE VENCIMIENTO", "DIAS_VENCIMIENTO", "DIAS");
       return {
         codigo: codigo.toString().replace(/\.0$/, ""),
