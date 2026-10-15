@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ArrowDownWideNarrow,
   CheckCircle2,
+  ChevronDown,
   CloudUpload,
   Download,
   FileText,
@@ -62,6 +63,8 @@ export default function Dashboard() {
   const [onlyOverdue, setOnlyOverdue] = useState(true);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("deuda_desc");
+  const [agente, setAgente] = useState<string>("todos");
+  const [showAgente, setShowAgente] = useState(false);
 
   const [subject, setSubject] = useState(emailSubject(""));
   const [emailTpl, setEmailTpl] = useState(DEFAULT_EMAIL_TEMPLATE);
