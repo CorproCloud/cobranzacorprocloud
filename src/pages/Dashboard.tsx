@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ArrowDownWideNarrow,
   CheckCircle2,
+  ChevronDown,
   CloudUpload,
   Download,
   FileText,
@@ -62,6 +63,8 @@ export default function Dashboard() {
   const [onlyOverdue, setOnlyOverdue] = useState(true);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("deuda_desc");
+  const [agente, setAgente] = useState<string>("todos");
+  const [showAgente, setShowAgente] = useState(false);
 
   const [subject, setSubject] = useState(emailSubject(""));
   const [emailTpl, setEmailTpl] = useState(DEFAULT_EMAIL_TEMPLATE);
@@ -205,6 +208,15 @@ export default function Dashboard() {
     return m;
   }, [contacts]);
 
+  const agentes = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of contacts) {
+      const a = (c.agente ?? "").trim();
+      if (a) set.add(a);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [contacts]);
+
   const enriched = useMemo(() => {
     return clients
       .map((c) => {
@@ -219,6 +231,8 @@ export default function Dashboard() {
         return { client: c, contact, filteredInvoices };
       })
       .filter((row) => {
+        if (agente !== "todos" && (row.contact?.agente ?? "").trim() !== agente)
+          return false;
         if (!search.trim()) return true;
         const q = search.toLowerCase();
         return (
@@ -239,7 +253,7 @@ export default function Dashboard() {
         }
         return deudaB - deudaA;
       });
-  }, [clients, contactsByCode, dateFrom, dateTo, onlyOverdue, search, sortOrder]);
+  }, [clients, contactsByCode, dateFrom, dateTo, onlyOverdue, search, sortOrder, agente]);
 
   const stats = useMemo(() => {
     const visible = enriched.filter((e) => e.filteredInvoices.length > 0);
@@ -483,7 +497,36 @@ export default function Dashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-                {(dateFrom || dateTo || search) && (
+                {showAgente && (
+                  <div>
+                    <Label className="mb-1.5 block text-xs">Agente</Label>
+                    <Select value={agente} onValueChange={setAgente}>
+                      <SelectTrigger className="w-[210px] gap-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los agentes</SelectItem>
+                        {agentes.map((a) => (
+                          <SelectItem key={a} value={a}>
+                            {a}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setShowAgente((v) => !v)}
+                >
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${showAgente ? "rotate-180" : ""}`}
+                  />
+                  Filtro de agente
+                </Button>
+                {(dateFrom || dateTo || search || agente !== "todos") && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -491,6 +534,7 @@ export default function Dashboard() {
                       setDateFrom("");
                       setDateTo("");
                       setSearch("");
+                      setAgente("todos");
                     }}
                   >
                     Limpiar filtros
