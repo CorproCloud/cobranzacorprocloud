@@ -208,6 +208,15 @@ export default function Dashboard() {
     return m;
   }, [contacts]);
 
+  const agentes = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of contacts) {
+      const a = (c.agente ?? "").trim();
+      if (a) set.add(a);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [contacts]);
+
   const enriched = useMemo(() => {
     return clients
       .map((c) => {
@@ -222,6 +231,8 @@ export default function Dashboard() {
         return { client: c, contact, filteredInvoices };
       })
       .filter((row) => {
+        if (agente !== "todos" && (row.contact?.agente ?? "").trim() !== agente)
+          return false;
         if (!search.trim()) return true;
         const q = search.toLowerCase();
         return (
@@ -242,7 +253,7 @@ export default function Dashboard() {
         }
         return deudaB - deudaA;
       });
-  }, [clients, contactsByCode, dateFrom, dateTo, onlyOverdue, search, sortOrder]);
+  }, [clients, contactsByCode, dateFrom, dateTo, onlyOverdue, search, sortOrder, agente]);
 
   const stats = useMemo(() => {
     const visible = enriched.filter((e) => e.filteredInvoices.length > 0);
