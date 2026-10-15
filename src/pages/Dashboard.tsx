@@ -101,6 +101,39 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
+  // Atajo oculto: mantener Ñ + P para mostrar/ocultar el filtro de agente.
+  const heldKeys = useRef(new Set<string>());
+  useEffect(() => {
+    const normKey = (k: string) => {
+      const lower = k.toLowerCase();
+      if (lower === "ñ" || lower === "n" || lower === ";") return "ñ";
+      if (lower === "p") return "p";
+      return null;
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      const k = normKey(e.key);
+      if (k) heldKeys.current.add(k);
+      if (k && !e.repeat && heldKeys.current.has("ñ") && heldKeys.current.has("p")) {
+        setShowAgente((v) => !v);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      const k = normKey(e.key);
+      if (k) heldKeys.current.delete(k);
+    };
+    const onBlur = () => heldKeys.current.clear();
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
+
   const handlePdf = (f: File | null) => {
     setPdfFile(f);
     if (!f) setClients([]);
