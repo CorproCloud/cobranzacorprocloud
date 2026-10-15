@@ -497,7 +497,36 @@ export default function Dashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-                {(dateFrom || dateTo || search) && (
+                {showAgente && (
+                  <div>
+                    <Label className="mb-1.5 block text-xs">Agente</Label>
+                    <Select value={agente} onValueChange={setAgente}>
+                      <SelectTrigger className="w-[210px] gap-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los agentes</SelectItem>
+                        {agentes.map((a) => (
+                          <SelectItem key={a} value={a}>
+                            {a}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setShowAgente((v) => !v)}
+                >
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${showAgente ? "rotate-180" : ""}`}
+                  />
+                  Filtro de agente
+                </Button>
+                {(dateFrom || dateTo || search || agente !== "todos") && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -505,6 +534,7 @@ export default function Dashboard() {
                       setDateFrom("");
                       setDateTo("");
                       setSearch("");
+                      setAgente("todos");
                     }}
                   >
                     Limpiar filtros
