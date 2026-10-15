@@ -106,7 +106,7 @@ export default function Dashboard() {
   useEffect(() => {
     const normKey = (k: string) => {
       const lower = k.toLowerCase();
-      if (lower === "ñ" || lower === "n" || lower === ";") return "ñ";
+      if (lower === "ñ" || lower === ";") return "ñ";
       if (lower === "p") return "p";
       return null;
     };
@@ -547,17 +547,6 @@ export default function Dashboard() {
                     </Select>
                   </div>
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => setShowAgente((v) => !v)}
-                >
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${showAgente ? "rotate-180" : ""}`}
-                  />
-                  Filtro de agente
-                </Button>
                 {(dateFrom || dateTo || search || agente !== "todos") && (
                   <Button
                     variant="ghost"
