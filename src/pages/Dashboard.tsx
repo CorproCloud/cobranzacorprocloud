@@ -116,6 +116,7 @@ export default function Dashboard() {
       const k = normKey(e.key);
       if (k) heldKeys.current.add(k);
       if (k && !e.repeat && heldKeys.current.has("ñ") && heldKeys.current.has("p")) {
+        console.log("NP_TOGGLE");
         setShowAgente((v) => !v);
       }
     };
